@@ -2,6 +2,12 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.14 - 2026-09-25
+
+- Embedded inline IPC bridge in webview HTML to ensure UI buttons always connect to slicer backend.
+- Added automatic retry logic for webview message delivery on cold startup.
+- Fixed button clicks falling back to static status view when host bridge is initializing.
+
 ## 0.2.13 - 2026-09-25
 
 - Fixed WinError 32 (file in use by another process) when installing, restoring stock, or uninstalling while OrcaSlicer is running.

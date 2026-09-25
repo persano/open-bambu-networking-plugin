@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.13"
+# version = "0.2.14"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -444,6 +444,46 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Open Bamboo Networking</title>
+<script>
+(function() {
+  if (window.orca) return;
+  var handlers = [];
+  function send(data) {
+    var payload = JSON.stringify({
+      channel: 'orca', kind: 'message', data: (data === undefined ? null : data)
+    });
+    if (window.wx && typeof window.wx.postMessage === 'function') {
+      window.wx.postMessage(payload);
+      return true;
+    }
+    if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+      window.chrome.webview.postMessage(payload);
+      return true;
+    }
+    return false;
+  }
+  window.orca = {
+    postMessage: function(data) {
+      if (!send(data)) {
+        var attempts = 0;
+        var timer = setInterval(function() {
+          attempts++;
+          if (send(data) || attempts > 60) clearInterval(timer);
+        }, 50);
+      }
+    },
+    onMessage: function(callback) {
+      if (typeof callback === 'function') handlers.push(callback);
+    }
+  };
+  window.__orcaDispatch = function(payload) {
+    var data = payload ? payload.data : null;
+    for (var i = 0; i < handlers.length; i++) {
+      try { handlers[i](data); } catch(e) {}
+    }
+  };
+})();
+</script>
 <style>
   :root {{
     --bg: #1e1e1e;
@@ -806,15 +846,32 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
   }}
 
   function sendAction(action) {{
-    if (action !== "get_status") {{
-      showAlert("Processing " + action + "...", true);
+    showAlert("Processing " + action + "...", true);
+
+    function trySend(attempts) {{
+      var payload = JSON.stringify({{
+        channel: 'orca', kind: 'message', data: {{ action: action }}
+      }});
+      if (window.orca && typeof window.orca.postMessage === "function") {{
+        window.orca.postMessage({{ action: action }});
+        return;
+      }}
+      if (window.wx && typeof window.wx.postMessage === "function") {{
+        window.wx.postMessage(payload);
+        return;
+      }}
+      if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === "function") {{
+        window.chrome.webview.postMessage(payload);
+        return;
+      }}
+      if (attempts < 40) {{
+        setTimeout(function() {{ trySend(attempts + 1); }}, 50);
+      }} else {{
+        showAlert("Failed to contact slicer host. Please restart OrcaSlicer and retry.", false);
+      }}
     }}
-    if (window.orca && typeof window.orca.postMessage === "function") {{
-      window.orca.postMessage({{ action: action }});
-    }} else {{
-      showAlert("Plugin bridge ready. Updating view...", true);
-      updateStatus(initialStatus);
-    }}
+
+    trySend(0);
   }}
 
   function copyPath() {{
