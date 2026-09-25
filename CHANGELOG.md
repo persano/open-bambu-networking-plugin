@@ -2,6 +2,12 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.12 - 2026-09-25
+
+- Renamed all UI text, status badges, and action buttons to "Open Bamboo" instead of "Clean Room".
+- Added SHA256 cryptographic verification for 100% accurate identification of Open Bamboo vs stock binaries.
+- Synchronized versioned native libraries (such as `bambu_networking_02.08.01.dll`) on install, restore stock, and uninstall so OrcaSlicer never loads mismatched binaries.
+
 ## 0.2.11 - 2026-09-25
 
 - Fixed library status detection so stock vendor binaries are not falsely identified as clean room libraries.
