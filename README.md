@@ -31,6 +31,21 @@ Rather than trying to bundle closed source binaries into OrcaSlicer or asking pe
 
 ---
 
+## Core Native Library & Fixes
+
+While [ClusterM/open-bamboo-networking](https://github.com/ClusterM/open-bamboo-networking) created the initial clean room base, it lacked support for recent secure Bambu firmware (Developer Mode OFF / Option B), off-LAN camera streaming, and multi-color AMS slot synchronization.
+
+The native fixes that enable this plugin to function were developed by **persano** in the **[`option-b-cloud-rescue`](https://github.com/persano/open-bamboo-networking/tree/option-b-cloud-rescue)** branch of [`persano/open-bamboo-networking`](https://github.com/persano/open-bamboo-networking):
+
+- **Developer Mode OFF Cloud Printing (Option B)**: Slicer RSA envelope signing and printer RSA PKCS#1 v1.5 field encryption (`url_enc`, `param_enc`), preventing printer rejection error `84033543` (`HMS 0500-0500-0001-0007`) on cloud dispatch.
+- **Off-LAN Remote Camera Liveview**: Signed `liveview.prepare` negotiation, `ttcode_enc` encryption, and ThroughTek (TUTK) P2P tunnel handshake for streaming camera feeds outside the local network.
+- **Instant AMS Slot Synchronization**: MQTT `pushall` telemetry trigger on subscribe to restore filament mapping and temperatures immediately on connect.
+- **Certificate Cache & Disk Fallback**: Resilient printer public key acquisition with negative caching and TTL.
+
+The pre-compiled binaries distributed inside this plugin (`bambu_networking.dll`, `libbambu_networking.so`, `libbambu_networking.dylib`) are built directly from this branch.
+
+---
+
 ## Features
 
 - **Cloud print without developer mode**: Uses automatic key signing so you can send cloud prints normally.

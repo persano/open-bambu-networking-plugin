@@ -12,6 +12,10 @@
 Provides automated provisioning, real-time GUI management, and status monitoring
 for the Open Bamboo Networking library (`bambu_networking.dll` / `libbambu_networking.so`).
 
+Built using clean room native libraries from persano/open-bamboo-networking
+(branch: option-b-cloud-rescue), incorporating custom fixes for cloud printing
+with Developer Mode OFF, off-LAN ThroughTek (TUTK) camera liveview, and AMS slot sync.
+
 Zero external processes or socket calls are executed on startup, avoiding any security audit prompts.
 """
 
