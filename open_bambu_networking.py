@@ -46,6 +46,8 @@ def get_bundled_plugin_path():
         return os.path.join(plugin_root, "bin", "win_x64", "bambu_networking.dll")
     elif sys.platform.startswith("linux"):
         return os.path.join(plugin_root, "bin", "linux_x64", "libbambu_networking.so")
+    elif sys.platform == "darwin":
+        return os.path.join(plugin_root, "bin", "macos_arm64", "libbambu_networking.dylib")
     return ""
 
 def get_status_dict():
@@ -89,10 +91,22 @@ def do_install():
             pass
 
     shutil.copy2(bundled, target)
+
+    if sys.platform == "darwin":
+        bundled_dir = os.path.dirname(bundled)
+        for fname in ["libBambuSource.dylib", "liblive555.dylib", "network_plugins.json"]:
+            src_f = os.path.join(bundled_dir, fname)
+            if os.path.exists(src_f):
+                try:
+                    shutil.copy2(src_f, os.path.join(target_dir, fname))
+                except Exception:
+                    pass
+
     return True, "Open Bamboo Networking library installed successfully! Please restart OrcaSlicer to apply."
 
 def do_uninstall():
     target = get_target_plugin_path()
+    target_dir = os.path.dirname(target)
     backup = target + ".bak"
 
     if os.path.exists(backup):
@@ -104,6 +118,14 @@ def do_uninstall():
         return True, "Restored original library from backup. Please restart OrcaSlicer."
     elif os.path.exists(target):
         os.remove(target)
+        if sys.platform == "darwin":
+            for fname in ["libBambuSource.dylib", "liblive555.dylib"]:
+                extra = os.path.join(target_dir, fname)
+                if os.path.exists(extra):
+                    try:
+                        os.remove(extra)
+                    except Exception:
+                        pass
         return True, "Removed library. Please restart OrcaSlicer."
     return False, "No installed library to remove."
 
