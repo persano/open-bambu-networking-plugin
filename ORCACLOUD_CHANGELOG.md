@@ -1,7 +1,3 @@
-# Changelog
-
-All notable changes to Open Bamboo Networking are documented in this file.
-
 ## 0.2.11 - 2026-09-25
 
 - Fixed library status detection so stock vendor binaries are not falsely identified as clean room libraries.

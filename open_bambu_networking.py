@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.10"
+# version = "0.2.11"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -60,7 +60,7 @@ def get_status_dict():
     target_size = os.path.getsize(target) if target_exists else 0
     bundled_size = os.path.getsize(bundled) if bundled_exists else 0
 
-    is_clean_room = target_exists and (target_size == bundled_size or target_size > 5_000_000)
+    is_clean_room = target_exists and bundled_exists and (target_size == bundled_size)
 
     return {
         "target_path": target,
@@ -79,7 +79,7 @@ def do_install():
     bundled = get_bundled_plugin_path()
 
     if not os.path.exists(bundled):
-        return False, f"Bundled clean-room library not found at: {bundled}"
+        return False, f"Bundled clean room library not found at: {bundled}"
 
     target_dir = os.path.dirname(target)
     os.makedirs(target_dir, exist_ok=True)
@@ -90,7 +90,10 @@ def do_install():
         except Exception:
             pass
 
-    shutil.copy2(bundled, target)
+    try:
+        shutil.copy2(bundled, target)
+    except Exception as e:
+        return False, f"Failed to copy library: {e}"
 
     if sys.platform == "darwin":
         bundled_dir = os.path.dirname(bundled)
@@ -102,32 +105,43 @@ def do_install():
                 except Exception:
                     pass
 
-    return True, "Open Bamboo Networking library installed successfully! Please restart OrcaSlicer to apply."
+    return True, "Open Bamboo library installed successfully! Please restart OrcaSlicer."
 
 def do_uninstall():
     target = get_target_plugin_path()
     target_dir = os.path.dirname(target)
+
+    if not os.path.exists(target):
+        return False, "No active library file found to remove."
+
+    try:
+        os.remove(target)
+    except Exception as e:
+        return False, f"Failed to remove library: {e}. If locked, restart OrcaSlicer and retry."
+
+    if sys.platform == "darwin":
+        for fname in ["libBambuSource.dylib", "liblive555.dylib", "network_plugins.json"]:
+            extra = os.path.join(target_dir, fname)
+            if os.path.exists(extra):
+                try:
+                    os.remove(extra)
+                except Exception:
+                    pass
+
+    return True, "Open Bamboo library removed successfully! Please restart OrcaSlicer."
+
+def do_restore_stock():
+    target = get_target_plugin_path()
     backup = target + ".bak"
 
-    if os.path.exists(backup):
+    if not os.path.exists(backup):
+        return False, f"No backup file found at {backup}"
+
+    try:
         shutil.copy2(backup, target)
-        try:
-            os.remove(backup)
-        except Exception:
-            pass
-        return True, "Restored original library from backup. Please restart OrcaSlicer."
-    elif os.path.exists(target):
-        os.remove(target)
-        if sys.platform == "darwin":
-            for fname in ["libBambuSource.dylib", "liblive555.dylib"]:
-                extra = os.path.join(target_dir, fname)
-                if os.path.exists(extra):
-                    try:
-                        os.remove(extra)
-                    except Exception:
-                        pass
-        return True, "Removed library. Please restart OrcaSlicer."
-    return False, "No installed library to remove."
+        return True, "Restored original stock library from backup! Please restart OrcaSlicer."
+    except Exception as e:
+        return False, f"Failed to restore backup: {e}"
 
 
 class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
@@ -162,6 +176,14 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
                 pass
         elif action == "uninstall":
             success, msg = do_uninstall()
+            reply["success"] = success
+            reply["message"] = msg
+            try:
+                orca.host.ui.message(msg, "Open Bamboo Networking", buttons="ok", icon="info" if success else "error")
+            except Exception:
+                pass
+        elif action == "restore_stock":
+            success, msg = do_restore_stock()
             reply["success"] = success
             reply["message"] = msg
             try:
@@ -441,16 +463,19 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
 
     <div class="btn-group">
       <button class="btn btn-secondary" onclick="sendAction('get_status')">
-        <span>🔍</span> <span>Check Current Status</span>
+        <span>🔍</span> <span>Check Status</span>
       </button>
       <button class="btn btn-primary" onclick="sendAction('install')">
-        <span>🚀</span> <span>Install / Update Open Bamboo Library</span>
+        <span>🚀</span> <span>Install / Update Clean Room Library</span>
+      </button>
+      <button class="btn btn-secondary" id="btnRestoreStock" onclick="sendAction('restore_stock')">
+        <span>🔄</span> <span>Restore Stock Backup</span>
       </button>
       <button class="btn btn-danger" onclick="sendAction('uninstall')">
-        <span>🔄</span> <span>Restore Stock / Uninstall</span>
+        <span>🗑️</span> <span>Uninstall / Remove Library</span>
       </button>
       <button class="btn btn-secondary" onclick="copyPath()">
-        <span>📋</span> <span>Copy Library Path</span>
+        <span>📋</span> <span>Copy Path</span>
       </button>
     </div>
   </div>
@@ -462,14 +487,14 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
         <span class="feature-icon">✔</span>
         <div>
           <div class="feature-title">Cloud Printing without Developer Mode</div>
-          <div class="feature-desc">Print and send slices over Bambu Cloud without touching Developer Mode or LAN Mode. Slicer-key signing fully automated.</div>
+          <div class="feature-desc">Print and send slices over Bambu Cloud without touching Developer Mode or LAN Mode. Slicer key signing fully automated.</div>
         </div>
       </li>
       <li>
         <span class="feature-icon">✔</span>
         <div>
           <div class="feature-title">Remote Camera Liveview</div>
-          <div class="feature-desc">Clean-room ThroughTek (TUTK) P2P video streaming over off-LAN internet connections.</div>
+          <div class="feature-desc">Clean room ThroughTek (TUTK) P2P video streaming over off-LAN internet connections.</div>
         </div>
       </li>
       <li>
@@ -482,7 +507,7 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
       <li>
         <span class="feature-icon">✔</span>
         <div>
-          <div class="feature-title">100% Clean-Room Open Source</div>
+          <div class="feature-title">100% Clean Room Open Source</div>
           <div class="feature-desc">Zero proprietary blobs. Built on open protocol specifications with full legal safety.</div>
         </div>
       </li>
@@ -492,7 +517,7 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
   <div class="card">
     <h3>🚀 Quick Start Guide</h3>
     <ol class="steps">
-      <li>Click <strong>Install / Update Open Bamboo Library</strong> above.</li>
+      <li>Click <strong>Install / Update Clean Room Library</strong> above.</li>
       <li><strong>Restart OrcaSlicer</strong> completely so the native engine binds the library.</li>
       <li>Sign in to your Bambu Cloud account in the top-right corner. All printers will appear in the Device tab with live camera feeds and instant cloud printing!</li>
     </ol>
@@ -517,19 +542,24 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
 
     if (s.is_clean_room) {{
       badge.className = "badge badge-success";
-      badge.textContent = "Active (Clean-Room OSS)";
-      statusText.innerHTML = "<span style='color:#66bb6a; font-weight:600;'>Clean-Room Library Active & Ready</span>";
+      badge.textContent = "Active (Clean Room OSS)";
+      statusText.innerHTML = "<span style='color:#66bb6a; font-weight:600;'>Clean Room Library Active & Ready (" + s.target_size_kb + " KB)</span>";
       targetSize.textContent = s.target_size_kb + " KB";
     }} else if (s.target_exists) {{
       badge.className = "badge badge-warning";
-      badge.textContent = "Installed (Stock / Unknown)";
-      statusText.innerHTML = "<span style='color:#ffa726; font-weight:600;'>Other Library Installed (" + s.target_size_kb + " KB)</span>";
+      badge.textContent = "Active (Stock / Vendor)";
+      statusText.innerHTML = "<span style='color:#ffa726; font-weight:600;'>Stock Bambu Library Active (" + s.target_size_kb + " KB)</span>";
       targetSize.textContent = s.target_size_kb + " KB";
     }} else {{
       badge.className = "badge badge-inactive";
       badge.textContent = "Not Installed";
       statusText.innerHTML = "<span style='color:#ef5350; font-weight:600;'>Not Installed (Click Install below)</span>";
       targetSize.textContent = "0 KB";
+    }}
+
+    const btnRestore = document.getElementById("btnRestoreStock");
+    if (btnRestore) {{
+      btnRestore.style.display = s.backup_exists ? "inline-flex" : "none";
     }}
   }}
 
