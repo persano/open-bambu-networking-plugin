@@ -2,6 +2,12 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.17 - 2026-09-25
+
+- Merged upstream fixes for public key caching with atomic certificate persistence.
+- Resolved cloud printer connection notification race condition when slicer registers callbacks late.
+- Added proactive pushall kickstart on broker connect and subscription for instant AMS slot, temperatures, and job sync.
+
 ## 0.2.16 - 2026-09-25
 
 - Zero startup audit prompts: Slicer startup never touches external filesystem paths during UI generation.
