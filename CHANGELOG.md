@@ -1,34 +1,24 @@
-# Changelog - Open Bamboo Networking Plugin for OrcaSlicer
+# Changelog
 
-All notable changes to the Open Bamboo Networking plugin are documented in this file.
+All notable changes to Open Bamboo Networking are documented in this file.
 
-## [0.2.10] - 2026-09-25
+## 0.2.10 - 2026-09-25
 
-### Fixed
-- Fixed empty wheel RECORD file that prevented OrcaSlicer from installing and activating the plugin.
-- Added top_level.txt to wheel dist-info for unambiguous package import resolution.
+- Fixed an empty wheel RECORD file that prevented OrcaSlicer from installing and activating the plugin.
+- Added top_level.txt to wheel dist-info for clean package import resolution.
 
-## [0.2.9] - 2026-09-25
+## 0.2.9 - 2026-09-25
 
-### Added
-- **Multi-Platform Support**: Added macOS Apple Silicon (`arm64`) pre-compiled clean-room library (`libbambu_networking.dylib`).
-- **Hybrid Page + Script Architecture**: Added dedicated "Open Bamboo" tab in OrcaSlicer top bar with interactive GUI dashboard alongside headless script capability.
-- **Audit-Clean Execution**: Eliminated `platform` module socket calls to ensure 0 security audit warnings on application launch.
-- **OrcaCloud Integration**: Configured OIDC GitHub Actions publishing for OrcaCloud Plugin Hub.
+- Added pre-compiled macOS Apple Silicon (arm64) clean room library (libbambu_networking.dylib).
+- Added dedicated "Open Bamboo" tab in OrcaSlicer top bar with interactive dashboard and 1 click installer.
+- Removed socket calls on startup to ensure zero security audit warnings on application launch.
+- Added automated publishing to OrcaCloud Plugin Hub via GitHub Actions OIDC.
 
-## [0.2.8] - 2026-09-25
+## 0.2.8 - 2026-09-25
 
-### Added
-- **Script Capability Transition**: Refactored plugin from persistent top-bar page to native on-demand `script` capability.
-- **Custom Icon**: Added modern stylized Open Bamboo panda icon (`icon.png`).
-- **One-Click Native Execution**: Clicking **Run** in OrcaSlicer's Plugins dialog automatically detects the operating system, backs up existing binaries, and installs the clean-room library.
-- **Interactive Configuration Panel**: Custom configuration tab providing active binary verification, size checking, and 1-click stock restoration.
-- **Cross-Platform Binary Bundling**: Includes pre-compiled clean-room binaries for Windows x64 (`bambu_networking.dll`) and Linux x86_64 (`libbambu_networking.so`).
-
-### Verified Hardware Features (Bambu Lab P1S)
-- **Cloud Printing Without Developer Mode**: RSA-SHA256 signature envelope and printer public key RSA-PKCS#1 v1.5 encryption (`url_enc`, `param_enc`).
-- **Remote Camera Liveview**: Clean-room ThroughTek (TUTK) P2P client with signed `liveview.prepare` authorization (`ttcode_enc`).
-- **Instant Reconnect Teardown**: Rapid 5x close packet burst on stream stop, reducing relay reconnect delay from 30–60s to <2s.
-- **WAN Relay Keepalive**: Handles relay ping (`0x23 0x05 0x42`) and automatic pong responses for long-running monitoring.
-- **Instant AMS Slot Sync**: Proactive `pushall` request upon cloud MQTT connection immediately syncs filament colors and temperatures.
-- **Spurious HMS Suppression**: Transparently filters transient `65543` / `84033543` error codes caused by initial unsigned cloud dispatches.
+- Initial release bundling clean room networking libraries for Windows (x64) and Linux (x64).
+- Enabled cloud printing without developer mode using automatic slicer key signing.
+- Enabled remote camera liveview over the internet via clean room ThroughTek (TUTK) P2P streaming.
+- Added instant stream teardown burst on camera stop, cutting reconnect delay to under 2 seconds.
+- Added proactive pushall telemetry request on cloud connect to sync AMS slot assignments immediately.
+- Filtered transient error codes caused by initial unsigned cloud requests.
