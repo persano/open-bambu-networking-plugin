@@ -1,3 +1,9 @@
+<div align="center">
+
+<picture>
+  <img alt="Open Bamboo logo" src="resources/images/icon.png" width="128" height="128">
+</picture>
+
 # Open Bamboo Networking Plugin for OrcaSlicer
 
 [![Release](https://img.shields.io/badge/release-v0.2.9-blue.svg)](https://github.com/persano/open-bambu-networking-plugin/releases)
@@ -6,7 +12,9 @@
 [![OrcaCloud](https://img.shields.io/badge/OrcaCloud-Plugin%20Hub-teal.svg)](https://cloud.orcaslicer.com/app/plugins/shared-plugins/5d35283e-0378-474d-8d3a-6d8f718fddeb)
 [![OrcaSlicer](https://img.shields.io/badge/OrcaSlicer-v2.3%2B%20%7C%20v2.4%20%7C%20v2.5%20nightly-orange.svg)](https://github.com/OrcaSlicer/OrcaSlicer)
 
-An open source networking plugin for OrcaSlicer. It enables cloud printing without developer mode, remote camera liveview over the internet, and AMS slot sync on Bambu Lab printers, without any closed source binaries or legal issues for the main OrcaSlicer project.
+<p>An open source networking plugin for OrcaSlicer. It enables cloud printing without developer mode, remote camera liveview over the internet, and AMS slot sync on Bambu Lab printers, without any closed source binaries or legal issues for the main OrcaSlicer project.</p>
+
+</div>
 
 ---
 
