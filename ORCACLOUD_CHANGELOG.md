@@ -1,3 +1,11 @@
+## 0.2.16 - 2026-09-25
+
+- Zero startup audit prompts: Slicer startup never touches external filesystem paths during UI generation.
+- On-demand permission model: Security audit hooks only trigger when user explicitly clicks Check Status, Install, Restore, or Uninstall.
+- Removed background file deletions from read-only status checks.
+- Streamlined portable directory discovery using exact executable path without scanning unrelated directories.
+- Avoided un-persistable file deletion audit hooks by utilizing atomic rename operations for locked libraries.
+
 ## 0.2.15 - 2026-09-25
 
 - Added multi-directory detection and synchronization to support portable and standalone OrcaSlicer installations.

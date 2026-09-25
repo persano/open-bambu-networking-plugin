@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.15"
+# version = "0.2.16"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -74,10 +74,6 @@ def get_all_plugin_dirs():
     except Exception:
         pass
 
-    for known in [r"H:\OrcaSlicer", r"C:\Program Files\OrcaSlicer"]:
-        if os.path.isdir(known) and known not in exe_candidates:
-            exe_candidates.append(known)
-
     for exe_dir in exe_candidates:
         if not os.path.isdir(exe_dir):
             continue
@@ -88,15 +84,7 @@ def get_all_plugin_dirs():
         ]
         for cand in subfolders:
             if os.path.isdir(cand) and cand not in dirs:
-                try:
-                    has_lib = any(
-                        (f.startswith(prefix) and (suffix in f))
-                        for f in os.listdir(cand)
-                    )
-                    if has_lib:
-                        dirs.append(cand)
-                except Exception:
-                    pass
+                dirs.append(cand)
 
     return dirs
 
@@ -116,18 +104,18 @@ def get_bundled_plugin_path():
     return ""
 
 def cleanup_old_files():
-    for pdir in get_all_plugin_dirs():
-        if not os.path.exists(pdir):
-            continue
-        try:
-            for f in os.listdir(pdir):
-                if ".old" in f or ".pending_delete" in f:
-                    try:
-                        os.remove(os.path.join(pdir, f))
-                    except Exception:
-                        pass
-        except Exception:
-            pass
+    primary = get_primary_plugin_dir()
+    if not primary or not os.path.exists(primary):
+        return
+    try:
+        for f in os.listdir(primary):
+            if ".old" in f or ".pending_delete" in f:
+                try:
+                    os.remove(os.path.join(primary, f))
+                except Exception:
+                    pass
+    except Exception:
+        pass
 
 def safe_copy(src, dst):
     """Safely copies src to dst, handling Windows locked DLLs by moving the locked file aside first."""
@@ -148,12 +136,8 @@ def safe_copy(src, dst):
     old_path = base_old
     counter = 1
     while os.path.exists(old_path):
-        try:
-            os.remove(old_path)
-            break
-        except Exception:
-            old_path = f"{base_old}.{counter}"
-            counter += 1
+        old_path = f"{base_old}.{counter}"
+        counter += 1
 
     try:
         os.rename(dst, old_path)
@@ -161,11 +145,6 @@ def safe_copy(src, dst):
         raise OSError(f"Cannot overwrite locked file {os.path.basename(dst)}: {e}")
 
     shutil.copy2(src, dst)
-
-    try:
-        os.remove(old_path)
-    except Exception:
-        pass
     return True
 
 def safe_remove(target):
@@ -173,33 +152,24 @@ def safe_remove(target):
     if not os.path.exists(target):
         return True
 
-    try:
-        os.remove(target)
-        return True
-    except (PermissionError, OSError):
-        pass
-
     base_del = target + ".pending_delete"
     del_path = base_del
     counter = 1
     while os.path.exists(del_path):
-        try:
-            os.remove(del_path)
-            break
-        except Exception:
-            del_path = f"{base_del}.{counter}"
-            counter += 1
+        del_path = f"{base_del}.{counter}"
+        counter += 1
 
     try:
         os.rename(target, del_path)
-    except Exception as e:
-        raise OSError(f"Cannot remove locked file {os.path.basename(target)}: {e}")
-
-    try:
-        os.remove(del_path)
+        return True
     except Exception:
         pass
-    return True
+
+    try:
+        os.remove(target)
+        return True
+    except Exception as e:
+        raise OSError(f"Cannot remove file {os.path.basename(target)}: {e}")
 
 def get_file_hash(path):
     if not path or not os.path.exists(path) or not os.path.isfile(path):
@@ -241,8 +211,6 @@ def get_active_target_path():
     return get_default_target_path()
 
 def get_status_dict():
-    cleanup_old_files()
-
     active_target = get_active_target_path()
     default_target = get_default_target_path()
     bundled = get_bundled_plugin_path()
@@ -521,8 +489,19 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
             pass
 
     def get_ui(self):
-        status = get_status_dict()
-        status_json = json.dumps(status)
+        default_status = {
+            "target_path": "",
+            "target_exists": False,
+            "backup_exists": True,
+            "bundled_exists": False,
+            "is_open_bamboo": False,
+            "target_size_kb": 0,
+            "bundled_size_kb": 0,
+            "os": get_os_name(),
+            "arch": "x64" if sys.maxsize > 2**32 else "x86",
+            "initial": True
+        }
+        status_json = json.dumps(default_status)
 
         return f"""<!DOCTYPE html>
 <html lang="en">
@@ -901,6 +880,14 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
     targetPath.textContent = currentTargetPath || "-";
     platformText.textContent = (s.os || "") + " " + (s.arch || "");
 
+    if (s.initial) {{
+      badge.className = "badge badge-inactive";
+      badge.textContent = "Standby";
+      statusText.innerHTML = "<span style='color:var(--text-secondary);'>Ready. Click <b>Check Status</b> or <b>Install</b> to inspect/manage library.</span>";
+      targetSize.textContent = "-";
+      return;
+    }}
+
     if (s.is_open_bamboo) {{
       badge.className = "badge badge-success";
       badge.textContent = "Active (Open Bamboo)";
@@ -932,7 +919,11 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
   }}
 
   function sendAction(action) {{
-    showAlert("Processing " + action + "...", true);
+    if (action === "get_status") {{
+      showAlert("Checking library status...", true);
+    }} else {{
+      showAlert("Processing " + action + "...", true);
+    }}
 
     function trySend(attempts) {{
       var payload = JSON.stringify({{
