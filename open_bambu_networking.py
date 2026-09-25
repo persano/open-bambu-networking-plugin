@@ -3,14 +3,14 @@
 #
 # [tool.orcaslicer.plugin]
 # name = "Open Bamboo Networking"
-# description = "Clean-room open-source networking plugin for Bambu Lab printers. Enables Cloud Printing without Developer Mode, Remote Camera Liveview over off-LAN internet, and instant AMS slot synchronization."
+# description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.9"
+# version = "0.2.10"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
 Provides automated provisioning, real-time GUI management, and status monitoring
-for the clean-room Open Bamboo Networking library (`bambu_networking.dll` / `libbambu_networking.so`).
+for the clean room Open Bamboo Networking library (`bambu_networking.dll` / `libbambu_networking.so`).
 
 Zero external processes or socket calls are executed on startup, avoiding any security audit prompts.
 """

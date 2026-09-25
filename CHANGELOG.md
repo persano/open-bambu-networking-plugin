@@ -2,6 +2,12 @@
 
 All notable changes to the Open Bamboo Networking plugin are documented in this file.
 
+## [0.2.10] - 2026-09-25
+
+### Fixed
+- Fixed empty wheel RECORD file that prevented OrcaSlicer from installing and activating the plugin.
+- Added top_level.txt to wheel dist-info for unambiguous package import resolution.
+
 ## [0.2.9] - 2026-09-25
 
 ### Added

@@ -7,3 +7,4 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+*.zip
