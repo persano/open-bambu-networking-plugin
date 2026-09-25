@@ -13,7 +13,7 @@ Open Bamboo Networking connects your Bambu Lab printer to OrcaSlicer with full c
 
 ## Clean room and privacy first
 
-- **Zero proprietary vendor blobs.** Bundles only the clean room open source library from ClusterM's open-bamboo-networking project.
+- **Zero proprietary vendor blobs.** Bundles clean room open source libraries built from persano/open-bamboo-networking (enhanced fork of ClusterM's project with cloud camera and AMS sync fixes).
 - **Local credentials stay local.** Your printer access codes, local keys, and authentication tokens remain stored safely on your computer.
 - **Decoupled from core.** The plugin manages networking externally through OrcaSlicer's Python plugin architecture, keeping the main slicer codebase free of legal and licensing encumbrance.
 - **Safe 1 click restore.** A complete rollback button lets you restore stock libraries or previous configurations at any time.
@@ -35,4 +35,5 @@ Open Bamboo Networking connects your Bambu Lab printer to OrcaSlicer with full c
 5. Log into your Bambu account in the top-right corner to print and stream video normally.
 
 Source code, issue tracking, and pre-compiled packages are available on GitHub:
-https://github.com/persano/open-bambu-networking-plugin
+Plugin: https://github.com/persano/open-bambu-networking-plugin
+Native Core: https://github.com/persano/open-bamboo-networking

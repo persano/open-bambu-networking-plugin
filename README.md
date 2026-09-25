@@ -27,7 +27,7 @@ Without this library:
 - **Remote camera feeds do not work**: Camera streams from outside your home network require ThroughTek (TUTK) P2P negotiation, which standard open source builds lack.
 - **AMS multi-material slots desync**: Multi-color sliced plates can lose their filament mapping when sent over the cloud.
 
-Rather than trying to bundle closed source binaries into OrcaSlicer or asking people to copy DLLs by hand, this plugin packages the clean room open source code from [open-bamboo-networking](https://github.com/ClusterM/open-bamboo-networking) into OrcaSlicer's Python plugin system. It gives you a dedicated management tab inside OrcaSlicer to set up or restore the library in 1 click.
+Rather than trying to bundle closed source binaries into OrcaSlicer or asking people to copy DLLs by hand, this plugin packages the clean room native binaries built from [persano/open-bamboo-networking](https://github.com/persano/open-bamboo-networking) (upstream [ClusterM/open-bamboo-networking](https://github.com/ClusterM/open-bamboo-networking)) into OrcaSlicer's Python plugin system. It incorporates critical patches for cloud liveview remote camera streaming over TUTK P2P, AMS pushall slot sync, and certificate fallback. It gives you a dedicated management tab inside OrcaSlicer to set up or restore the library in 1 click.
 
 ---
 
@@ -87,13 +87,14 @@ Rather than trying to bundle closed source binaries into OrcaSlicer or asking pe
 1. **Python plugin (`open_bambu_networking.py`)**:
    Uses `orca.pages` to display an embedded UI panel in OrcaSlicer through the `window.orca` bridge, and `orca.script` for background tasks.
 2. **Clean room native library**:
-   Bundles the open source `open-bamboo-networking` binaries (`bambu_networking.dll`, `libbambu_networking.so`, `libbambu_networking.dylib`). It implements OrcaSlicer's `BBLNetworkPlugin` C interface, handling signature handshakes, MQTT communications, and P2P video streaming.
+   Bundles the pre-compiled `open-bamboo-networking` binaries built from the [persano/open-bamboo-networking](https://github.com/persano/open-bamboo-networking) fork (`bambu_networking.dll`, `libbambu_networking.so`, `libbambu_networking.dylib`). It implements OrcaSlicer's `BBLNetworkPlugin` C interface, incorporating custom fixes for ThroughTek TUTK P2P camera liveview, MQTT pushall on subscribe for AMS multi-color slot sync, and certificate store fallbacks.
 
 ---
 
-## Credits
+## Credits and Architecture
 
 - **[ClusterM](https://github.com/ClusterM)** and contributors to [`open-bamboo-networking`](https://github.com/ClusterM/open-bamboo-networking) for reverse engineering the protocol into clean room open source code.
+- **[persano](https://github.com/persano)** for developing the cloud liveview ThroughTek TUTK P2P camera streaming patches, AMS pushall sync fixes, certificate fallbacks, and the OrcaSlicer Python plugin integration in [`persano/open-bamboo-networking`](https://github.com/persano/open-bamboo-networking).
 - **[SoftFever](https://github.com/SoftFever)** and the OrcaSlicer team for building OrcaSlicer and the Python plugin framework.
 
 ---
