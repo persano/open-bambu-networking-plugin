@@ -110,7 +110,7 @@ Once installed, OrcaSlicer displays a dedicated **Open Bamboo** tab in the main 
 ## 🤝 Acknowledgements & Credits
 
 - **[ClusterM](https://github.com/ClusterM)** and all contributors to [`open-bamboo-networking`](https://github.com/ClusterM/open-bamboo-networking) for the clean-room reverse-engineering work.
-- **[SoftFever](https://github.com/SoftFever)**, **ianalexis**, and the **OrcaSlicer team** for building an incredible slicer and the extensible Python plugin system.
+- **[SoftFever](https://github.com/SoftFever)** and the **OrcaSlicer team** for building an incredible slicer and the extensible Python plugin system.
 
 ---
 
