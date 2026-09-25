@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Clean-room open-source networking plugin for Bambu Lab printers. Enables Cloud Printing without Developer Mode, Remote Camera Liveview over off-LAN internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.8"
+# version = "0.2.9"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
