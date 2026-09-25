@@ -1,3 +1,9 @@
+## 0.2.13 - 2026-09-25
+
+- Fixed WinError 32 (file in use by another process) when installing, restoring stock, or uninstalling while OrcaSlicer is running.
+- Added atomic rename-aside mechanism so locked native libraries can be replaced or removed without closing OrcaSlicer first.
+- Added cleanup for temporary pending files on startup.
+
 ## 0.2.12 - 2026-09-25
 
 - Renamed all UI text, status badges, and action buttons to "Open Bamboo" instead of "Clean Room".

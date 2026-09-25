@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.12"
+# version = "0.2.13"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -61,6 +61,92 @@ def get_bundled_plugin_path():
         return os.path.join(plugin_root, "bin", "macos_arm64", "libbambu_networking.dylib")
     return ""
 
+def cleanup_old_files():
+    pdir = get_plugin_dir()
+    if not os.path.exists(pdir):
+        return
+    try:
+        for f in os.listdir(pdir):
+            if ".old" in f or ".pending_delete" in f:
+                try:
+                    os.remove(os.path.join(pdir, f))
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+def safe_copy(src, dst):
+    """Safely copies src to dst, handling Windows locked DLLs by moving the locked file aside first."""
+    if not os.path.exists(src):
+        raise FileNotFoundError(f"Source file not found: {src}")
+
+    dst_dir = os.path.dirname(dst)
+    if dst_dir:
+        os.makedirs(dst_dir, exist_ok=True)
+
+    try:
+        shutil.copy2(src, dst)
+        return True
+    except (PermissionError, OSError):
+        pass
+
+    base_old = dst + ".old"
+    old_path = base_old
+    counter = 1
+    while os.path.exists(old_path):
+        try:
+            os.remove(old_path)
+            break
+        except Exception:
+            old_path = f"{base_old}.{counter}"
+            counter += 1
+
+    try:
+        os.rename(dst, old_path)
+    except Exception as e:
+        raise OSError(f"Cannot overwrite locked file {os.path.basename(dst)}: {e}")
+
+    shutil.copy2(src, dst)
+
+    try:
+        os.remove(old_path)
+    except Exception:
+        pass
+    return True
+
+def safe_remove(target):
+    """Safely removes target, handling Windows locked DLLs by renaming aside so OrcaSlicer will not load it."""
+    if not os.path.exists(target):
+        return True
+
+    try:
+        os.remove(target)
+        return True
+    except (PermissionError, OSError):
+        pass
+
+    base_del = target + ".pending_delete"
+    del_path = base_del
+    counter = 1
+    while os.path.exists(del_path):
+        try:
+            os.remove(del_path)
+            break
+        except Exception:
+            del_path = f"{base_del}.{counter}"
+            counter += 1
+
+    try:
+        os.rename(target, del_path)
+    except Exception as e:
+        raise OSError(f"Cannot remove locked file {os.path.basename(target)}: {e}")
+
+    try:
+        os.remove(del_path)
+    except Exception:
+        pass
+    return True
+
 def get_file_hash(path):
     if not path or not os.path.exists(path) or not os.path.isfile(path):
         return ""
@@ -87,8 +173,9 @@ def get_active_target_path():
     candidates = []
     try:
         for f in os.listdir(pdir):
-            if f.startswith(versioned_prefix) and f.endswith(suffix) and not f.endswith(".bak") and not f.endswith(".vendor_backup"):
-                candidates.append(os.path.join(pdir, f))
+            if f.startswith(versioned_prefix) and f.endswith(suffix):
+                if not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
+                    candidates.append(os.path.join(pdir, f))
     except Exception:
         pass
 
@@ -99,6 +186,8 @@ def get_active_target_path():
     return get_default_target_path()
 
 def get_status_dict():
+    cleanup_old_files()
+
     active_target = get_active_target_path()
     default_target = get_default_target_path()
     bundled = get_bundled_plugin_path()
@@ -139,6 +228,8 @@ def get_status_dict():
     }
 
 def do_install():
+    cleanup_old_files()
+
     pdir = get_plugin_dir()
     bundled = get_bundled_plugin_path()
 
@@ -157,7 +248,7 @@ def do_install():
     try:
         for f in os.listdir(pdir):
             if (f.startswith(versioned_prefix) and f.endswith(suffix)) or f == os.path.basename(default_target):
-                if not f.endswith(".bak") and not f.endswith(".vendor_backup"):
+                if not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
                     targets_to_update.add(os.path.join(pdir, f))
     except Exception:
         pass
@@ -169,13 +260,13 @@ def do_install():
                 bak = t + ".bak"
                 if not os.path.exists(bak):
                     try:
-                        shutil.copy2(t, bak)
+                        safe_copy(t, bak)
                     except Exception:
                         pass
 
     for t in targets_to_update:
         try:
-            shutil.copy2(bundled, t)
+            safe_copy(bundled, t)
         except Exception as e:
             return False, f"Failed to install to {os.path.basename(t)}: {e}"
 
@@ -185,13 +276,15 @@ def do_install():
             src_f = os.path.join(bundled_dir, fname)
             if os.path.exists(src_f):
                 try:
-                    shutil.copy2(src_f, os.path.join(pdir, fname))
+                    safe_copy(src_f, os.path.join(pdir, fname))
                 except Exception:
                     pass
 
     return True, "Open Bamboo library installed successfully! Please restart OrcaSlicer."
 
 def do_uninstall():
+    cleanup_old_files()
+
     pdir = get_plugin_dir()
     if not os.path.exists(pdir):
         return False, "No active library files found to remove."
@@ -204,20 +297,21 @@ def do_uninstall():
 
     if os.path.exists(default_target):
         try:
-            os.remove(default_target)
+            safe_remove(default_target)
             removed.append(os.path.basename(default_target))
         except Exception as e:
-            return False, f"Failed to remove {os.path.basename(default_target)}: {e}. If locked, restart OrcaSlicer and retry."
+            return False, f"Failed to remove {os.path.basename(default_target)}: {e}."
 
     try:
         for f in os.listdir(pdir):
-            if f.startswith(versioned_prefix) and f.endswith(suffix) and not f.endswith(".bak") and not f.endswith(".vendor_backup"):
-                vf = os.path.join(pdir, f)
-                try:
-                    os.remove(vf)
-                    removed.append(f)
-                except Exception:
-                    pass
+            if f.startswith(versioned_prefix) and f.endswith(suffix):
+                if not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
+                    vf = os.path.join(pdir, f)
+                    try:
+                        safe_remove(vf)
+                        removed.append(f)
+                    except Exception:
+                        pass
     except Exception:
         pass
 
@@ -226,7 +320,7 @@ def do_uninstall():
             extra = os.path.join(pdir, fname)
             if os.path.exists(extra):
                 try:
-                    os.remove(extra)
+                    safe_remove(extra)
                 except Exception:
                     pass
 
@@ -236,6 +330,8 @@ def do_uninstall():
     return True, "Open Bamboo library removed successfully! Please restart OrcaSlicer."
 
 def do_restore_stock():
+    cleanup_old_files()
+
     pdir = get_plugin_dir()
     if not os.path.exists(pdir):
         return False, "Plugin directory not found."
@@ -261,7 +357,7 @@ def do_restore_stock():
     for bak in backups:
         orig = bak[:-4]
         try:
-            shutil.copy2(bak, orig)
+            safe_copy(bak, orig)
             restored_files.append(os.path.basename(orig))
         except Exception as e:
             return False, f"Failed to restore {os.path.basename(orig)}: {e}"
@@ -269,13 +365,14 @@ def do_restore_stock():
     stock_source = default_target if (os.path.exists(default_target) and get_file_hash(default_target) != bundled_hash) else ""
     try:
         for f in os.listdir(pdir):
-            if f.startswith(versioned_prefix) and f.endswith(suffix) and not f.endswith(".bak") and not f.endswith(".vendor_backup"):
-                vf = os.path.join(pdir, f)
-                if get_file_hash(vf) == bundled_hash:
-                    if stock_source:
-                        shutil.copy2(stock_source, vf)
-                    else:
-                        os.remove(vf)
+            if f.startswith(versioned_prefix) and f.endswith(suffix):
+                if not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
+                    vf = os.path.join(pdir, f)
+                    if get_file_hash(vf) == bundled_hash:
+                        if stock_source:
+                            safe_copy(stock_source, vf)
+                        else:
+                            safe_remove(vf)
     except Exception:
         pass
 

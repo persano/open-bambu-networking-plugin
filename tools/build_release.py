@@ -3,7 +3,7 @@ import zipfile
 import hashlib
 import base64
 
-VERSION = "0.2.12"
+VERSION = "0.2.13"
 DIST_INFO = f"open_bambu_networking-{VERSION}.dist-info"
 
 METADATA_CONTENT = f"""Metadata-Version: 2.1
