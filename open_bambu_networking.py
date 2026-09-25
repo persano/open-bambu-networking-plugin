@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.14"
+# version = "0.2.15"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -29,15 +29,6 @@ def get_os_name():
         return "macOS"
     return "Linux"
 
-def get_plugin_dir():
-    appdata = os.environ.get("APPDATA", "")
-    if sys.platform.startswith("win"):
-        return os.path.join(appdata, "OrcaSlicer", "plugins")
-    elif sys.platform == "darwin":
-        return os.path.expanduser("~/Library/Application Support/OrcaSlicer/plugins")
-    else:  # Linux
-        return os.path.expanduser("~/.config/OrcaSlicer/plugins")
-
 def get_lib_prefix_suffix():
     if sys.platform.startswith("win"):
         return "bambu_networking", ".dll"
@@ -46,10 +37,73 @@ def get_lib_prefix_suffix():
     else:
         return "libbambu_networking", ".so"
 
-def get_default_target_path():
-    pdir = get_plugin_dir()
+def get_primary_plugin_dir():
+    appdata = os.environ.get("APPDATA", "")
+    if sys.platform.startswith("win"):
+        return os.path.join(appdata, "OrcaSlicer", "plugins")
+    elif sys.platform == "darwin":
+        return os.path.expanduser("~/Library/Application Support/OrcaSlicer/plugins")
+    else:
+        return os.path.expanduser("~/.config/OrcaSlicer/plugins")
+
+def get_all_plugin_dirs():
+    """Returns all directories OrcaSlicer checks for networking libraries.
+    Includes the primary AppData plugin folder and, for portable or custom builds,
+    the executable directory and its resources/plugins folder.
+    """
+    dirs = []
+    primary = get_primary_plugin_dir()
+    if primary and primary not in dirs:
+        dirs.append(primary)
+
     prefix, suffix = get_lib_prefix_suffix()
-    return os.path.join(pdir, f"{prefix}{suffix}")
+    exe_candidates = []
+    if sys.platform.startswith("win"):
+        try:
+            import ctypes
+            buf = ctypes.create_unicode_buffer(1024)
+            ctypes.windll.kernel32.GetModuleFileNameW(0, buf, 1024)
+            if buf.value:
+                exe_candidates.append(os.path.dirname(os.path.abspath(buf.value)))
+        except Exception:
+            pass
+
+    try:
+        if sys.executable:
+            exe_candidates.append(os.path.dirname(os.path.abspath(sys.executable)))
+    except Exception:
+        pass
+
+    for known in [r"H:\OrcaSlicer", r"C:\Program Files\OrcaSlicer"]:
+        if os.path.isdir(known) and known not in exe_candidates:
+            exe_candidates.append(known)
+
+    for exe_dir in exe_candidates:
+        if not os.path.isdir(exe_dir):
+            continue
+        subfolders = [
+            exe_dir,
+            os.path.join(exe_dir, "plugins"),
+            os.path.join(exe_dir, "resources", "plugins"),
+        ]
+        for cand in subfolders:
+            if os.path.isdir(cand) and cand not in dirs:
+                try:
+                    has_lib = any(
+                        (f.startswith(prefix) and (suffix in f))
+                        for f in os.listdir(cand)
+                    )
+                    if has_lib:
+                        dirs.append(cand)
+                except Exception:
+                    pass
+
+    return dirs
+
+def get_default_target_path():
+    primary = get_primary_plugin_dir()
+    prefix, suffix = get_lib_prefix_suffix()
+    return os.path.join(primary, f"{prefix}{suffix}")
 
 def get_bundled_plugin_path():
     plugin_root = os.path.dirname(os.path.abspath(__file__))
@@ -62,18 +116,18 @@ def get_bundled_plugin_path():
     return ""
 
 def cleanup_old_files():
-    pdir = get_plugin_dir()
-    if not os.path.exists(pdir):
-        return
-    try:
-        for f in os.listdir(pdir):
-            if ".old" in f or ".pending_delete" in f:
-                try:
-                    os.remove(os.path.join(pdir, f))
-                except Exception:
-                    pass
-    except Exception:
-        pass
+    for pdir in get_all_plugin_dirs():
+        if not os.path.exists(pdir):
+            continue
+        try:
+            for f in os.listdir(pdir):
+                if ".old" in f or ".pending_delete" in f:
+                    try:
+                        os.remove(os.path.join(pdir, f))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
 def safe_copy(src, dst):
     """Safely copies src to dst, handling Windows locked DLLs by moving the locked file aside first."""
@@ -160,28 +214,29 @@ def get_file_hash(path):
         return ""
 
 def get_active_target_path():
-    """Returns the library file path that OrcaSlicer actually binds on startup.
-    OrcaSlicer prioritizes versioned libraries (e.g. bambu_networking_02.08.01.dll)
-    over unversioned bambu_networking.dll.
-    """
-    pdir = get_plugin_dir()
-    if not os.path.exists(pdir):
-        return get_default_target_path()
-
+    """Returns the library file path that OrcaSlicer actually binds on startup."""
     prefix, suffix = get_lib_prefix_suffix()
     versioned_prefix = prefix + "_"
-    candidates = []
-    try:
-        for f in os.listdir(pdir):
-            if f.startswith(versioned_prefix) and f.endswith(suffix):
-                if not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
-                    candidates.append(os.path.join(pdir, f))
-    except Exception:
-        pass
 
-    if candidates:
-        candidates.sort(reverse=True)
-        return candidates[0]
+    for pdir in get_all_plugin_dirs():
+        if not os.path.exists(pdir):
+            continue
+        candidates = []
+        try:
+            for f in os.listdir(pdir):
+                if f.startswith(versioned_prefix) and f.endswith(suffix):
+                    if not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
+                        candidates.append(os.path.join(pdir, f))
+        except Exception:
+            pass
+
+        if candidates:
+            candidates.sort(reverse=True)
+            return candidates[0]
+
+        default_f = os.path.join(pdir, f"{prefix}{suffix}")
+        if os.path.exists(default_f):
+            return default_f
 
     return get_default_target_path()
 
@@ -191,29 +246,45 @@ def get_status_dict():
     active_target = get_active_target_path()
     default_target = get_default_target_path()
     bundled = get_bundled_plugin_path()
-    pdir = get_plugin_dir()
 
     display_target = active_target if os.path.exists(active_target) else default_target
     display_exists = os.path.exists(display_target)
 
     bundled_exists = os.path.exists(bundled)
     bundled_hash = get_file_hash(bundled)
-    target_hash = get_file_hash(display_target) if display_exists else ""
 
-    is_open_bamboo = bool(display_exists and bundled_exists and (target_hash == bundled_hash))
+    # Check if ANY active library across all plugin directories is Open Bamboo
+    is_open_bamboo = False
+    prefix, suffix = get_lib_prefix_suffix()
+    for pdir in get_all_plugin_dirs():
+        if not os.path.exists(pdir):
+            continue
+        try:
+            for f in os.listdir(pdir):
+                if (f.startswith(prefix) and f.endswith(suffix)) and not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
+                    if get_file_hash(os.path.join(pdir, f)) == bundled_hash:
+                        is_open_bamboo = True
+                        break
+        except Exception:
+            pass
+        if is_open_bamboo:
+            break
 
     target_size = os.path.getsize(display_target) if display_exists else 0
     bundled_size = os.path.getsize(bundled) if bundled_exists else 0
 
     backup_exists = False
-    if os.path.exists(pdir):
-        try:
-            for f in os.listdir(pdir):
-                if f.endswith(".bak"):
-                    backup_exists = True
-                    break
-        except Exception:
-            pass
+    for pdir in get_all_plugin_dirs():
+        if os.path.exists(pdir):
+            try:
+                for f in os.listdir(pdir):
+                    if f.endswith(".bak") and prefix in f:
+                        backup_exists = True
+                        break
+            except Exception:
+                pass
+        if backup_exists:
+            break
 
     return {
         "target_path": display_target,
@@ -230,99 +301,98 @@ def get_status_dict():
 def do_install():
     cleanup_old_files()
 
-    pdir = get_plugin_dir()
     bundled = get_bundled_plugin_path()
-
     if not os.path.exists(bundled):
         return False, f"Bundled Open Bamboo library not found at: {bundled}"
 
-    os.makedirs(pdir, exist_ok=True)
     bundled_hash = get_file_hash(bundled)
-
     prefix, suffix = get_lib_prefix_suffix()
     versioned_prefix = prefix + "_"
-    default_target = get_default_target_path()
 
-    targets_to_update = {default_target}
+    installed_targets = []
 
-    try:
-        for f in os.listdir(pdir):
-            if (f.startswith(versioned_prefix) and f.endswith(suffix)) or f == os.path.basename(default_target):
-                if not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
-                    targets_to_update.add(os.path.join(pdir, f))
-    except Exception:
-        pass
+    for pdir in get_all_plugin_dirs():
+        os.makedirs(pdir, exist_ok=True)
+        default_target = os.path.join(pdir, f"{prefix}{suffix}")
+        targets_to_update = {default_target}
 
-    for t in targets_to_update:
-        if os.path.exists(t):
-            t_hash = get_file_hash(t)
-            if t_hash != bundled_hash:
-                bak = t + ".bak"
-                if not os.path.exists(bak):
+        try:
+            for f in os.listdir(pdir):
+                if (f.startswith(versioned_prefix) and f.endswith(suffix)) or f == os.path.basename(default_target):
+                    if not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
+                        targets_to_update.add(os.path.join(pdir, f))
+        except Exception:
+            pass
+
+        for t in targets_to_update:
+            if os.path.exists(t):
+                t_hash = get_file_hash(t)
+                if t_hash != bundled_hash:
+                    bak = t + ".bak"
+                    if not os.path.exists(bak):
+                        try:
+                            safe_copy(t, bak)
+                        except Exception:
+                            pass
+
+        for t in targets_to_update:
+            try:
+                safe_copy(bundled, t)
+                installed_targets.append(t)
+            except Exception as e:
+                return False, f"Failed to install to {os.path.basename(t)} in {pdir}: {e}"
+
+        if sys.platform == "darwin":
+            bundled_dir = os.path.dirname(bundled)
+            for fname in ["libBambuSource.dylib", "liblive555.dylib", "network_plugins.json"]:
+                src_f = os.path.join(bundled_dir, fname)
+                if os.path.exists(src_f):
                     try:
-                        safe_copy(t, bak)
+                        safe_copy(src_f, os.path.join(pdir, fname))
                     except Exception:
                         pass
-
-    for t in targets_to_update:
-        try:
-            safe_copy(bundled, t)
-        except Exception as e:
-            return False, f"Failed to install to {os.path.basename(t)}: {e}"
-
-    if sys.platform == "darwin":
-        bundled_dir = os.path.dirname(bundled)
-        for fname in ["libBambuSource.dylib", "liblive555.dylib", "network_plugins.json"]:
-            src_f = os.path.join(bundled_dir, fname)
-            if os.path.exists(src_f):
-                try:
-                    safe_copy(src_f, os.path.join(pdir, fname))
-                except Exception:
-                    pass
 
     return True, "Open Bamboo library installed successfully! Please restart OrcaSlicer."
 
 def do_uninstall():
     cleanup_old_files()
 
-    pdir = get_plugin_dir()
-    if not os.path.exists(pdir):
-        return False, "No active library files found to remove."
-
     prefix, suffix = get_lib_prefix_suffix()
     versioned_prefix = prefix + "_"
-    default_target = get_default_target_path()
-
     removed = []
 
-    if os.path.exists(default_target):
-        try:
-            safe_remove(default_target)
-            removed.append(os.path.basename(default_target))
-        except Exception as e:
-            return False, f"Failed to remove {os.path.basename(default_target)}: {e}."
+    for pdir in get_all_plugin_dirs():
+        if not os.path.exists(pdir):
+            continue
+        default_target = os.path.join(pdir, f"{prefix}{suffix}")
+        if os.path.exists(default_target):
+            try:
+                safe_remove(default_target)
+                removed.append(os.path.basename(default_target))
+            except Exception:
+                pass
 
-    try:
-        for f in os.listdir(pdir):
-            if f.startswith(versioned_prefix) and f.endswith(suffix):
-                if not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
-                    vf = os.path.join(pdir, f)
+        try:
+            for f in os.listdir(pdir):
+                if f.startswith(versioned_prefix) and f.endswith(suffix):
+                    if not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
+                        vf = os.path.join(pdir, f)
+                        try:
+                            safe_remove(vf)
+                            removed.append(f)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
+        if sys.platform == "darwin":
+            for fname in ["libBambuSource.dylib", "liblive555.dylib", "network_plugins.json"]:
+                extra = os.path.join(pdir, fname)
+                if os.path.exists(extra):
                     try:
-                        safe_remove(vf)
-                        removed.append(f)
+                        safe_remove(extra)
                     except Exception:
                         pass
-    except Exception:
-        pass
-
-    if sys.platform == "darwin":
-        for fname in ["libBambuSource.dylib", "liblive555.dylib", "network_plugins.json"]:
-            extra = os.path.join(pdir, fname)
-            if os.path.exists(extra):
-                try:
-                    safe_remove(extra)
-                except Exception:
-                    pass
 
     if not removed:
         return False, "No active library files found to remove."
@@ -332,51 +402,67 @@ def do_uninstall():
 def do_restore_stock():
     cleanup_old_files()
 
-    pdir = get_plugin_dir()
-    if not os.path.exists(pdir):
-        return False, "Plugin directory not found."
-
     prefix, suffix = get_lib_prefix_suffix()
     versioned_prefix = prefix + "_"
-    default_target = get_default_target_path()
     bundled = get_bundled_plugin_path()
     bundled_hash = get_file_hash(bundled)
 
-    backups = []
-    try:
-        for f in os.listdir(pdir):
-            if f.endswith(".bak") and (prefix in f):
-                backups.append(os.path.join(pdir, f))
-    except Exception:
-        pass
+    # First, locate any master stock backup across all plugin directories
+    master_stock = ""
+    for pdir in get_all_plugin_dirs():
+        if not os.path.exists(pdir):
+            continue
+        try:
+            for f in os.listdir(pdir):
+                if f.endswith(".bak") and prefix in f:
+                    full_f = os.path.join(pdir, f)
+                    if get_file_hash(full_f) != bundled_hash:
+                        master_stock = full_f
+                        break
+        except Exception:
+            pass
+        if master_stock:
+            break
 
-    if not backups:
+    if not master_stock:
         return False, "No stock backup (.bak) files found to restore."
 
     restored_files = []
-    for bak in backups:
-        orig = bak[:-4]
+
+    for pdir in get_all_plugin_dirs():
+        if not os.path.exists(pdir):
+            continue
+        default_target = os.path.join(pdir, f"{prefix}{suffix}")
+
+        # Restore direct backups in this directory
         try:
-            safe_copy(bak, orig)
-            restored_files.append(os.path.basename(orig))
-        except Exception as e:
-            return False, f"Failed to restore {os.path.basename(orig)}: {e}"
+            for f in os.listdir(pdir):
+                if f.endswith(".bak") and prefix in f:
+                    bak = os.path.join(pdir, f)
+                    orig = bak[:-4]
+                    try:
+                        safe_copy(bak, orig)
+                        restored_files.append(os.path.basename(orig))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
-    stock_source = default_target if (os.path.exists(default_target) and get_file_hash(default_target) != bundled_hash) else ""
-    try:
-        for f in os.listdir(pdir):
-            if f.startswith(versioned_prefix) and f.endswith(suffix):
-                if not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
-                    vf = os.path.join(pdir, f)
-                    if get_file_hash(vf) == bundled_hash:
-                        if stock_source:
-                            safe_copy(stock_source, vf)
-                        else:
-                            safe_remove(vf)
-    except Exception:
-        pass
+        # If any file in this directory still matches Open Bamboo, overwrite with master stock
+        try:
+            for f in os.listdir(pdir):
+                if (f.startswith(prefix) and f.endswith(suffix)) and not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
+                    full_f = os.path.join(pdir, f)
+                    if get_file_hash(full_f) == bundled_hash:
+                        try:
+                            safe_copy(master_stock, full_f)
+                            restored_files.append(f)
+                        except Exception:
+                            safe_remove(full_f)
+        except Exception:
+            pass
 
-    return True, f"Restored original stock library ({', '.join(restored_files)})! Please restart OrcaSlicer."
+    return True, f"Restored original stock library ({', '.join(set(restored_files))})! Please restart OrcaSlicer."
 
 
 class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
@@ -445,44 +531,44 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Open Bamboo Networking</title>
 <script>
-(function() {
+(function() {{
   if (window.orca) return;
   var handlers = [];
-  function send(data) {
-    var payload = JSON.stringify({
+  function send(data) {{
+    var payload = JSON.stringify({{
       channel: 'orca', kind: 'message', data: (data === undefined ? null : data)
-    });
-    if (window.wx && typeof window.wx.postMessage === 'function') {
+    }});
+    if (window.wx && typeof window.wx.postMessage === 'function') {{
       window.wx.postMessage(payload);
       return true;
-    }
-    if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+    }}
+    if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {{
       window.chrome.webview.postMessage(payload);
       return true;
-    }
+    }}
     return false;
-  }
-  window.orca = {
-    postMessage: function(data) {
-      if (!send(data)) {
+  }}
+  window.orca = {{
+    postMessage: function(data) {{
+      if (!send(data)) {{
         var attempts = 0;
-        var timer = setInterval(function() {
+        var timer = setInterval(function() {{
           attempts++;
           if (send(data) || attempts > 60) clearInterval(timer);
-        }, 50);
-      }
-    },
-    onMessage: function(callback) {
+        }}, 50);
+      }}
+    }},
+    onMessage: function(callback) {{
       if (typeof callback === 'function') handlers.push(callback);
-    }
-  };
-  window.__orcaDispatch = function(payload) {
+    }}
+  }};
+  window.__orcaDispatch = function(payload) {{
     var data = payload ? payload.data : null;
-    for (var i = 0; i < handlers.length; i++) {
-      try { handlers[i](data); } catch(e) {}
-    }
-  };
-})();
+    for (var i = 0; i < handlers.length; i++) {{
+      try {{ handlers[i](data); }} catch(e) {{}}
+    }}
+  }};
+}})();
 </script>
 <style>
   :root {{

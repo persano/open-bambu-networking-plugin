@@ -1,3 +1,9 @@
+## 0.2.15 - 2026-09-25
+
+- Added multi-directory detection and synchronization to support portable and standalone OrcaSlicer installations.
+- Automatically synchronizes libraries across the executable root, resources/plugins folder, and user AppData folder.
+- Synchronized stock restorations and uninstalls across all active slicer locations simultaneously.
+
 ## 0.2.14 - 2026-09-25
 
 - Embedded inline IPC bridge in webview HTML to ensure UI buttons always connect to slicer backend.
