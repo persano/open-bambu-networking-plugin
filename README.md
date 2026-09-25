@@ -67,6 +67,7 @@ Once installed, OrcaSlicer displays a dedicated **Open Bamboo** tab in the main 
 2. Extract the archive into your OrcaSlicer plugins directory:
    - **Windows**: `%APPDATA%\OrcaSlicer\orca_plugins\open_bambu_networking\`
    - **Linux**: `~/.config/OrcaSlicer/orca_plugins/open_bambu_networking/`
+   - **macOS**: `~/Library/Application Support/OrcaSlicer/orca_plugins/open_bambu_networking/`
 3. Launch OrcaSlicer.
 4. Click the new **Open Bamboo** tab in the top navigation bar.
 5. Click **Install / Update Open Bamboo Library**.
@@ -84,7 +85,7 @@ Once installed, OrcaSlicer displays a dedicated **Open Bamboo** tab in the main 
 ### Operating Systems
 - **Windows**: Windows 10 / 11 (x64) - Fully tested & verified
 - **Linux**: Ubuntu 22.04+, Fedora, Arch (x64) - Binary bundled
-- **macOS**: Apple Silicon & Intel - In progress
+- **macOS**: Apple Silicon (arm64) - Binary bundled
 
 ### OrcaSlicer Versions
 - OrcaSlicer v2.3.0 and newer
