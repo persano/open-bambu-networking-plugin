@@ -35,7 +35,7 @@ Rather than trying to bundle closed source binaries into OrcaSlicer or asking pe
 
 While [ClusterM/open-bamboo-networking](https://github.com/ClusterM/open-bamboo-networking) created the initial clean room base, it lacked support for recent secure Bambu firmware with Developer Mode OFF, off-LAN camera streaming, and multi-color AMS slot synchronization.
 
-The native fixes that enable this plugin to function were developed by **persano** in [`persano/open-bamboo-networking`](https://github.com/persano/open-bamboo-networking):
+The native fixes that enable this plugin to function were developed by **persano (me)** in [`persano/open-bamboo-networking`](https://github.com/persano/open-bamboo-networking):
 
 - **Cloud Printing Without Developer Mode**: Slicer RSA envelope signing and printer RSA PKCS#1 v1.5 field encryption (`url_enc`, `param_enc`), preventing printer rejection error `84033543` (`HMS 0500-0500-0001-0007`) on cloud dispatch.
 - **Off-LAN Remote Camera Liveview**: Signed `liveview.prepare` negotiation, `ttcode_enc` encryption, and ThroughTek (TUTK) P2P tunnel handshake for streaming camera feeds outside the local network.
@@ -109,7 +109,7 @@ The pre-compiled binaries distributed inside this plugin (`bambu_networking.dll`
 ## Credits and Architecture
 
 - **[ClusterM](https://github.com/ClusterM)** and contributors to [`open-bamboo-networking`](https://github.com/ClusterM/open-bamboo-networking) for reverse engineering the protocol into clean room open source code.
-- **[persano](https://github.com/persano)** for developing the cloud liveview ThroughTek TUTK P2P camera streaming patches, AMS pushall sync fixes, certificate fallbacks, and the OrcaSlicer Python plugin integration in [`persano/open-bamboo-networking`](https://github.com/persano/open-bamboo-networking).
+- **[persano](https://github.com/persano) (me)** for developing the cloud liveview ThroughTek TUTK P2P camera streaming patches, AMS pushall sync fixes, certificate fallbacks, and the OrcaSlicer Python plugin integration in [`persano/open-bamboo-networking`](https://github.com/persano/open-bamboo-networking).
 - **[SoftFever](https://github.com/SoftFever)** and the OrcaSlicer team for building OrcaSlicer and the Python plugin framework.
 
 ---
