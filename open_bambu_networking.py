@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.18"
+# version = "0.2.19"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -24,7 +24,16 @@ import sys
 import json
 import shutil
 import hashlib
+import re
 import orca
+
+# OrcaSlicer binds the network library by its AA.BB.CC series and only accepts the series its
+# AVAILABLE_NETWORK_VERSIONS whitelist declares. A library reporting any other series (02.08.02)
+# is refused, the configured version ping-pongs, and the slicer keeps re-offering its own
+# download with "Bambu Network plug-in not detected". The install series is therefore pinned.
+INSTALL_SERIES = "02.08.01"
+LEGACY_SERIES = "01.10.01"
+VERSION_RE = re.compile(rb"0[12]\.\d{2}\.\d{2}\.\d{2}(?:\.\d{2})?")
 
 def get_os_name():
     if sys.platform.startswith("win"):
@@ -105,6 +114,107 @@ def get_bundled_plugin_path():
         return os.path.join(plugin_root, "bin", "linux_x64", "libbambu_networking.so")
     elif sys.platform == "darwin":
         return os.path.join(plugin_root, "bin", "macos_arm64", "libbambu_networking.dylib")
+    return ""
+
+def get_sidecar_names():
+    """Companion modules OrcaSlicer loads next to the network library.
+
+    A missing BambuSource.dll makes get_bambu_source_entry() return null, which OrcaSlicer
+    answers by offering its own network plug-in download - the same loop as a wrong series.
+    """
+    if sys.platform.startswith("win"):
+        return ["BambuSource.dll", "live555.dll"]
+    if sys.platform == "darwin":
+        return ["libBambuSource.dylib", "liblive555.dylib", "network_plugins.json"]
+    return ["libBambuSource.so", "liblive555.so"]
+
+def bundled_sidecar_path(name):
+    return os.path.join(os.path.dirname(get_bundled_plugin_path()), name)
+
+def install_sidecar(name, pdir):
+    """Copies a companion module, keeping a .bak of whatever was there before."""
+    src = bundled_sidecar_path(name)
+    if not os.path.exists(src):
+        return
+    dst = os.path.join(pdir, name)
+    if os.path.exists(dst):
+        if get_file_hash(dst) == get_file_hash(src):
+            return
+        bak = dst + ".bak"
+        if not os.path.exists(bak):
+            try:
+                safe_copy(dst, bak)
+            except Exception:
+                pass
+    safe_copy(src, dst)
+
+def read_reported_version(path):
+    """The version string the library answers with for bambu_network_get_version()."""
+    if not path or not os.path.isfile(path):
+        return ""
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+    except Exception:
+        return ""
+    matches = [m.group(0).decode("ascii") for m in VERSION_RE.finditer(data)]
+    if not matches:
+        return ""
+    for v in matches:
+        if v.startswith(INSTALL_SERIES + "."):
+            return v
+    return matches[0]
+
+def series_of(version):
+    parts = version.split(".")
+    return ".".join(parts[:3]) if len(parts) >= 3 else ""
+
+def bundled_series_warning():
+    """Actionable message when the bundled library reports a series OrcaSlicer refuses."""
+    version = read_reported_version(get_bundled_plugin_path())
+    if not version:
+        return ""
+    if series_of(version) in (INSTALL_SERIES, LEGACY_SERIES):
+        return ""
+    return (
+        f"Bundled library reports {version}, but OrcaSlicer only loads the "
+        f"{INSTALL_SERIES} series, so installing it leaves the slicer unable to "
+        f"detect the plug-in. Rebuild it with -DOBN_VERSION={INSTALL_SERIES}.99."
+    )
+
+def read_slicer_config():
+    """Reads the OrcaSlicer.conf keys that gate loading of any network library."""
+    conf_path = os.path.join(os.path.dirname(get_primary_plugin_dir()), "OrcaSlicer.conf")
+    result = {"path": conf_path, "installed_networking": None, "network_plugin_version": ""}
+    try:
+        with open(conf_path, "r", encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except Exception:
+        return result
+
+    m = re.search(r'"installed_networking"\s*:\s*(true|false)', text)
+    if m:
+        result["installed_networking"] = m.group(1) == "true"
+    m = re.search(r'"network_plugin_version"\s*:\s*"([^"]*)"', text)
+    if m:
+        result["network_plugin_version"] = m.group(1)
+    return result
+
+def config_warning(conf):
+    """OrcaSlicer skips the whole network library load until the plug-in is enabled."""
+    if conf["installed_networking"] is False:
+        return (
+            "OrcaSlicer has the network plug-in disabled, so no library is loaded at all and "
+            "the slicer reports it as missing. Enable it under Preferences > Enable Bambu "
+            "network plug-in, then restart."
+        )
+    if conf["installed_networking"] is True and conf["network_plugin_version"] not in ("", INSTALL_SERIES):
+        if series_of(conf["network_plugin_version"]) != INSTALL_SERIES:
+            return (
+                f"OrcaSlicer is configured for network plug-in {conf['network_plugin_version']}, "
+                f"which is not the {INSTALL_SERIES} series this build installs. Install once to "
+                "let the slicer re-point the configuration."
+            )
     return ""
 
 def cleanup_old_files():
@@ -213,6 +323,13 @@ def get_active_target_path():
     for pdir in get_all_plugin_dirs():
         if not os.path.exists(pdir):
             continue
+
+        # The series file is the one resolve_library_path() binds first, so it wins over any
+        # other versioned copy a previous run may have left behind.
+        series_f = os.path.join(pdir, f"{prefix}_{INSTALL_SERIES}{suffix}")
+        if os.path.exists(series_f):
+            return series_f
+
         candidates = []
         try:
             for f in os.listdir(pdir):
@@ -276,12 +393,31 @@ def get_status_dict():
         if backup_exists:
             break
 
+    active_version = read_reported_version(display_target) if display_exists else ""
+    warning = ""
+    if active_version and series_of(active_version) not in (INSTALL_SERIES, LEGACY_SERIES):
+        warning = (
+            f"Installed library reports {active_version}, but OrcaSlicer only loads the "
+            f"{INSTALL_SERIES} series. It will keep reporting the plug-in as missing until "
+            f"the {INSTALL_SERIES} build is installed."
+        )
+    if not warning:
+        warning = bundled_series_warning()
+
+    conf = read_slicer_config()
+    conf_warning = config_warning(conf)
+
     return {
         "target_path": display_target,
         "target_exists": display_exists,
         "backup_exists": backup_exists,
         "bundled_exists": bundled_exists,
         "is_open_bamboo": is_open_bamboo,
+        "reported_version": active_version,
+        "series_warning": warning,
+        "config_warning": conf_warning,
+        "installed_networking": conf["installed_networking"],
+        "config_version": conf["network_plugin_version"],
         "target_size_kb": round(target_size / 1024, 1),
         "bundled_size_kb": round(bundled_size / 1024, 1),
         "os": get_os_name(),
@@ -295,11 +431,16 @@ def do_install():
     if not os.path.exists(bundled):
         return False, f"Bundled Open Bamboo library not found at: {bundled}"
 
+    series_warning = bundled_series_warning()
+    if series_warning:
+        return False, series_warning
+
     bundled_hash = get_file_hash(bundled)
     prefix, suffix = get_lib_prefix_suffix()
     versioned_prefix = prefix + "_"
 
     installed_targets = []
+    conflicting_removed = []
     failures = []
     plugin_dirs = get_all_plugin_dirs()
 
@@ -310,7 +451,8 @@ def do_install():
             failures.append((pdir, str(e)))
             continue
         default_target = os.path.join(pdir, f"{prefix}{suffix}")
-        targets_to_update = {default_target}
+        series_target = os.path.join(pdir, f"{prefix}_{INSTALL_SERIES}{suffix}")
+        targets_to_update = {default_target, series_target}
 
         try:
             for f in os.listdir(pdir):
@@ -338,19 +480,45 @@ def do_install():
             except Exception as e:
                 failures.append((t, str(e)))
 
-        if sys.platform == "darwin":
-            bundled_dir = os.path.dirname(bundled)
-            for fname in ["libBambuSource.dylib", "liblive555.dylib", "network_plugins.json"]:
-                src_f = os.path.join(bundled_dir, fname)
-                if os.path.exists(src_f):
+        # OrcaSlicer resolves the library by series, so a leftover 02.08.02 build is never the
+        # one that binds - it only keeps the configured version pointed at a series the slicer
+        # refuses, which is what makes it report the plug-in as missing over and over.
+        try:
+            for f in os.listdir(pdir):
+                if not (f.startswith(versioned_prefix) and f.endswith(suffix)):
+                    continue
+                if f.endswith(".bak") or f.endswith(".vendor_backup") or ".old" in f or ".pending_delete" in f:
+                    continue
+                series = f[len(versioned_prefix):-len(suffix)]
+                if series.startswith("02.08.") and not series.startswith(INSTALL_SERIES):
                     try:
-                        safe_copy(src_f, os.path.join(pdir, fname))
+                        safe_remove(os.path.join(pdir, f))
+                        conflicting_removed.append(f)
                     except Exception:
                         pass
+        except Exception:
+            pass
+
+        for name in get_sidecar_names():
+            try:
+                install_sidecar(name, pdir)
+            except Exception:
+                pass
 
     if not installed_targets:
         detail = "; ".join(f"{t}: {e}" for t, e in failures[:3]) or "unknown error"
         return False, f"Failed to install: {detail}"
+
+    cleanup_note = ""
+    if conflicting_removed:
+        cleanup_note = " Removed unsupported-series leftover(s): " + ", ".join(sorted(set(conflicting_removed))) + "."
+
+    conf_note = ""
+    if read_slicer_config()["installed_networking"] is False:
+        conf_note = (
+            " OrcaSlicer still has the network plug-in disabled, so it will keep reporting it "
+            "missing: enable Preferences > Enable Bambu network plug-in, then restart."
+        )
 
     if failures:
         failed_dirs = sorted({t if t in plugin_dirs else os.path.dirname(t) for t, _ in failures})
@@ -359,9 +527,13 @@ def do_install():
             f"Open Bamboo library installed to {len(installed_targets)} location(s), "
             f"but not to {', '.join(failed_dirs)} ({detail}). Restart OrcaSlicer; if the "
             "library is not picked up, start OrcaSlicer as administrator and install again."
+            + cleanup_note + conf_note
         )
 
-    return True, "Open Bamboo library installed successfully! Please restart OrcaSlicer."
+    return True, (
+        "Open Bamboo library installed successfully "
+        f"({INSTALL_SERIES} series). Please restart OrcaSlicer." + cleanup_note + conf_note
+    )
 
 def do_uninstall():
     cleanup_old_files()
@@ -394,14 +566,19 @@ def do_uninstall():
         except Exception:
             pass
 
-        if sys.platform == "darwin":
-            for fname in ["libBambuSource.dylib", "liblive555.dylib", "network_plugins.json"]:
-                extra = os.path.join(pdir, fname)
-                if os.path.exists(extra):
-                    try:
-                        safe_remove(extra)
-                    except Exception:
-                        pass
+        for name in get_sidecar_names():
+            extra = os.path.join(pdir, name)
+            if not os.path.exists(extra):
+                continue
+            # Only take away what this plugin put there; a vendored copy belongs to OrcaSlicer.
+            bundled_sidecar = bundled_sidecar_path(name)
+            if os.path.exists(bundled_sidecar) and get_file_hash(extra) != get_file_hash(bundled_sidecar):
+                continue
+            try:
+                safe_remove(extra)
+                removed.append(name)
+            except Exception:
+                pass
 
     if not removed:
         return False, "No active library files found to remove."
@@ -471,6 +648,27 @@ def do_restore_stock():
         except Exception:
             pass
 
+        # Companion modules are restored from their own backup, or dropped when we are the
+        # ones who placed them and no vendor copy was kept.
+        for name in get_sidecar_names():
+            cur = os.path.join(pdir, name)
+            bak = cur + ".bak"
+            if os.path.exists(bak):
+                try:
+                    safe_copy(bak, cur)
+                    restored_files.append(name)
+                except Exception:
+                    pass
+                continue
+            bundled_sidecar = bundled_sidecar_path(name)
+            if os.path.exists(cur) and os.path.exists(bundled_sidecar) \
+                    and get_file_hash(cur) == get_file_hash(bundled_sidecar):
+                try:
+                    safe_remove(cur)
+                    restored_files.append(name)
+                except Exception:
+                    pass
+
     return True, f"Restored original stock library ({', '.join(set(restored_files))})! Please restart OrcaSlicer."
 
 
@@ -536,6 +734,11 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
             "backup_exists": True,
             "bundled_exists": False,
             "is_open_bamboo": False,
+            "reported_version": "",
+            "series_warning": "",
+            "config_warning": "",
+            "installed_networking": None,
+            "config_version": "",
             "target_size_kb": 0,
             "bundled_size_kb": 0,
             "os": get_os_name(),
@@ -838,6 +1041,9 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
       <div class="meta-key">File Size:</div>
       <div id="targetSize" class="meta-val">-</div>
 
+      <div class="meta-key">Reported Version:</div>
+      <div id="reportedVersion" class="meta-val">-</div>
+
       <div class="meta-key">Platform:</div>
       <div id="platformText" class="meta-val">-</div>
     </div>
@@ -915,6 +1121,7 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
     const statusText = document.getElementById("statusText");
     const targetPath = document.getElementById("targetPath");
     const targetSize = document.getElementById("targetSize");
+    const reportedVersion = document.getElementById("reportedVersion");
     const platformText = document.getElementById("platformText");
 
     currentTargetPath = s.target_path || "";
@@ -926,8 +1133,11 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
       badge.textContent = "Standby";
       statusText.innerHTML = "<span style='color:var(--text-secondary);'>Ready. Click <b>Check Status</b> or <b>Install</b> to inspect/manage library.</span>";
       targetSize.textContent = "-";
+      reportedVersion.textContent = "-";
       return;
     }}
+
+    reportedVersion.textContent = s.reported_version || "-";
 
     if (s.is_open_bamboo) {{
       badge.className = "badge badge-success";
@@ -944,6 +1154,16 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
       badge.textContent = "Not Installed";
       statusText.innerHTML = "<span style='color:#ef5350; font-weight:600;'>Not Installed (Click Install below)</span>";
       targetSize.textContent = "0 KB";
+    }}
+
+    if (s.series_warning) {{
+      badge.className = "badge badge-warning";
+      badge.textContent = "Wrong ABI Series";
+      statusText.innerHTML = "<span style='color:#ef5350; font-weight:600;'>" + s.series_warning + "</span>";
+    }} else if (s.config_warning) {{
+      badge.className = "badge badge-warning";
+      badge.textContent = "Plug-in Disabled";
+      statusText.innerHTML = "<span style='color:#ef5350; font-weight:600;'>" + s.config_warning + "</span>";
     }}
 
     const btnRestore = document.getElementById("btnRestoreStock");

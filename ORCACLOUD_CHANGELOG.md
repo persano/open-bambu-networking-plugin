@@ -1,3 +1,10 @@
+## 0.2.19 - 2026-09-28
+
+- Fixed the "Bambu Network plug-in not detected" loop: the libraries refreshed in 0.2.18 were built for ABI `02.08.02`, a series OrcaSlicer does not whitelist, so the slicer refused to bind them, rewrote `network_plugin_version` to `02.08.02` and renamed the file to `bambu_networking_02.08.02.dll` - after which it could no longer find any library and kept re-offering its own download. All platforms now ship the `02.08.01.99` build OrcaSlicer expects.
+- The installer now always writes `bambu_networking_02.08.01.dll`, the series file OrcaSlicer's loader binds; stock OrcaSlicer never loads the plain `bambu_networking.dll` on a modern config, so installing only that file used to be a no-op.
+- Wrong-series leftovers are removed on install, and install is refused with an actionable message if the bundled library reports a series OrcaSlicer refuses.
+- Status now shows the library's reported version and flags a wrong ABI series.
+
 ## 0.2.18 - 2026-09-28
 
 - Fixed the reported install failure `Cannot overwrite locked file bambu_networking.dll: [WinError 2] The system cannot find the file specified`: the installer no longer renames a library that is not there, so a read-only folder such as `C:\Program Files\OrcaSlicer` now reports the real cause (no write permission) with an administrator hint instead of a bogus missing-file error.

@@ -3,7 +3,7 @@ import zipfile
 import hashlib
 import base64
 
-VERSION = "0.2.18"
+VERSION = "0.2.19"
 DIST_INFO = f"open_bambu_networking-{VERSION}.dist-info"
 
 METADATA_CONTENT = f"""Metadata-Version: 2.1
@@ -99,24 +99,25 @@ def build_zip():
 
     print(f"Built {zip_filename}: {os.path.getsize(zip_filename):,} bytes")
 
+def build_platform_wheel(whl_filename, platform_dir):
+    """One wheel per platform: every binary in bin/<platform_dir>/ ships together."""
+    files = {}
+    for fn in sorted(os.listdir(platform_dir)):
+        src = os.path.join(platform_dir, fn)
+        if os.path.isfile(src):
+            rel = f"{platform_dir}/{fn}".replace("\\", "/")
+            files[src] = f"open_bambu_networking/{rel}"
+    build_wheel(whl_filename, files)
+
 if __name__ == "__main__":
     # 1. Windows x86_64
-    build_wheel(
-        "open_bambu_networking_win_x86_64.whl",
-        {"bin/win_x64/bambu_networking.dll": "open_bambu_networking/bin/win_x64/bambu_networking.dll"}
-    )
+    build_platform_wheel("open_bambu_networking_win_x86_64.whl", "bin/win_x64")
 
     # 2. Linux x86_64
-    build_wheel(
-        "open_bambu_networking_linux_x86_64.whl",
-        {"bin/linux_x64/libbambu_networking.so": "open_bambu_networking/bin/linux_x64/libbambu_networking.so"}
-    )
+    build_platform_wheel("open_bambu_networking_linux_x86_64.whl", "bin/linux_x64")
 
     # 3. macOS arm64
-    macos_files = {}
-    for fn in os.listdir("bin/macos_arm64"):
-        macos_files[f"bin/macos_arm64/{fn}"] = f"open_bambu_networking/bin/macos_arm64/{fn}"
-    build_wheel("open_bambu_networking_macosx_arm64.whl", macos_files)
+    build_platform_wheel("open_bambu_networking_macosx_arm64.whl", "bin/macos_arm64")
 
     # 4. Zip for manual installation
     build_zip()
