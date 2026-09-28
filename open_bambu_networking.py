@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.17"
+# version = "0.2.18"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -108,18 +108,18 @@ def get_bundled_plugin_path():
     return ""
 
 def cleanup_old_files():
-    primary = get_primary_plugin_dir()
-    if not primary or not os.path.exists(primary):
-        return
-    try:
-        for f in os.listdir(primary):
-            if ".old" in f or ".pending_delete" in f:
-                try:
-                    os.remove(os.path.join(primary, f))
-                except Exception:
-                    pass
-    except Exception:
-        pass
+    for pdir in get_all_plugin_dirs():
+        if not pdir or not os.path.exists(pdir):
+            continue
+        try:
+            for f in os.listdir(pdir):
+                if ".old" in f or ".pending_delete" in f:
+                    try:
+                        os.remove(os.path.join(pdir, f))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
 def safe_copy(src, dst):
     """Safely copies src to dst, handling Windows locked DLLs by moving the locked file aside first."""
@@ -133,8 +133,18 @@ def safe_copy(src, dst):
     try:
         shutil.copy2(src, dst)
         return True
-    except (PermissionError, OSError):
-        pass
+    except (PermissionError, OSError) as copy_error:
+        first_error = copy_error
+
+    if not os.path.exists(dst):
+        # Nothing was locked: the copy itself was refused (read-only folder such as
+        # C:\Program Files, antivirus, ...) or the file is not there at all, so there
+        # is no file to move aside and renaming it would fail with WinError 2.
+        raise OSError(
+            f"Cannot create {os.path.basename(dst)} in {dst_dir or os.curdir}: "
+            f"{first_error}. The folder is not writable by OrcaSlicer, run "
+            "OrcaSlicer as administrator and try again"
+        )
 
     base_old = dst + ".old"
     old_path = base_old
@@ -148,7 +158,15 @@ def safe_copy(src, dst):
     except Exception as e:
         raise OSError(f"Cannot overwrite locked file {os.path.basename(dst)}: {e}")
 
-    shutil.copy2(src, dst)
+    try:
+        shutil.copy2(src, dst)
+    except Exception as e:
+        # Put the original file back so a failed write never leaves no library at all.
+        try:
+            os.rename(old_path, dst)
+        except Exception:
+            pass
+        raise OSError(f"Cannot write {os.path.basename(dst)} after unlocking it: {e}")
     return True
 
 def safe_remove(target):
@@ -282,9 +300,15 @@ def do_install():
     versioned_prefix = prefix + "_"
 
     installed_targets = []
+    failures = []
+    plugin_dirs = get_all_plugin_dirs()
 
-    for pdir in get_all_plugin_dirs():
-        os.makedirs(pdir, exist_ok=True)
+    for pdir in plugin_dirs:
+        try:
+            os.makedirs(pdir, exist_ok=True)
+        except Exception as e:
+            failures.append((pdir, str(e)))
+            continue
         default_target = os.path.join(pdir, f"{prefix}{suffix}")
         targets_to_update = {default_target}
 
@@ -296,23 +320,23 @@ def do_install():
         except Exception:
             pass
 
-        for t in targets_to_update:
+        for t in sorted(targets_to_update):
             if os.path.exists(t):
                 t_hash = get_file_hash(t)
-                if t_hash != bundled_hash:
-                    bak = t + ".bak"
-                    if not os.path.exists(bak):
-                        try:
-                            safe_copy(t, bak)
-                        except Exception:
-                            pass
-
-        for t in targets_to_update:
+                if t_hash == bundled_hash:
+                    installed_targets.append(t)
+                    continue
+                bak = t + ".bak"
+                if not os.path.exists(bak):
+                    try:
+                        safe_copy(t, bak)
+                    except Exception:
+                        pass
             try:
                 safe_copy(bundled, t)
                 installed_targets.append(t)
             except Exception as e:
-                return False, f"Failed to install to {os.path.basename(t)} in {pdir}: {e}"
+                failures.append((t, str(e)))
 
         if sys.platform == "darwin":
             bundled_dir = os.path.dirname(bundled)
@@ -323,6 +347,19 @@ def do_install():
                         safe_copy(src_f, os.path.join(pdir, fname))
                     except Exception:
                         pass
+
+    if not installed_targets:
+        detail = "; ".join(f"{t}: {e}" for t, e in failures[:3]) or "unknown error"
+        return False, f"Failed to install: {detail}"
+
+    if failures:
+        failed_dirs = sorted({t if t in plugin_dirs else os.path.dirname(t) for t, _ in failures})
+        detail = "; ".join(f"{t}: {e}" for t, e in failures[:2])
+        return True, (
+            f"Open Bamboo library installed to {len(installed_targets)} location(s), "
+            f"but not to {', '.join(failed_dirs)} ({detail}). Restart OrcaSlicer; if the "
+            "library is not picked up, start OrcaSlicer as administrator and install again."
+        )
 
     return True, "Open Bamboo library installed successfully! Please restart OrcaSlicer."
 

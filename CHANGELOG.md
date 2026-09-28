@@ -2,6 +2,13 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.18 - 2026-09-28
+
+- Fixed the reported install failure `Cannot overwrite locked file bambu_networking.dll: [WinError 2] The system cannot find the file specified`: the installer no longer renames a library that is not there, so a read-only folder such as `C:\Program Files\OrcaSlicer` now reports the real cause (no write permission) with an administrator hint instead of a bogus missing-file error.
+- A folder that needs administrator rights no longer aborts the whole install: every writable OrcaSlicer location is still updated and the result message lists the skipped ones.
+- Targets that already carry the bundled library are left in place instead of being rewritten, and stale `.old` / `.pending_delete` leftovers are swept from every plugin folder.
+- Updated native libraries for Windows (x64), Linux (x64) and macOS (Apple Silicon) to the latest network core: TUTK file transfer, storage browser fix, cloud MQTT TLS verification on Windows, and the upstream #102 / #103 input hardening round.
+
 ## 0.2.17 - 2026-09-25
 
 - Merged upstream fixes for public key caching with atomic certificate persistence.
