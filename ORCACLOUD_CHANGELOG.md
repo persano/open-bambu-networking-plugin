@@ -1,3 +1,8 @@
+## 0.2.21 - 2026-09-29
+
+- Fixed remote camera liveview: the cloud-pushed `liveview.prepare` is rejected with `err_code: 84033543` on secured printers, so the TUTK server never started and the camera timed out on "loading...". The plugin now sends its own signed `prepare` right after the ttcode mint - and re-sends it signed when the cloud's copy comes back rejected - restoring remote liveview.
+- Native libraries rebuilt on all three platforms from open-bamboo-networking `682f13d`, still at ABI `02.08.01.99`.
+
 ## 0.2.20 - 2026-09-28
 
 - Fixed remote camera liveview minting. `/v1/iot-service/api/user/ttcode` has been answering HTTP 403 `{"code":8}` since the native library refresh in 0.2.19, because the request carried the PoP header pair. Bisected against production one header group at a time: X-BBL headers only `200`, X-BBL plus `x-bbl-app-certification-id`/`x-bbl-device-security-sign` `403`, PoP alone `403`, neither `200`. The pair is no longer sent, restoring the mint every pre-0.2.19 build performed successfully (72 consecutive `200`s on this machine).
