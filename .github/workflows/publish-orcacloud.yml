@@ -35,7 +35,11 @@ jobs:
           changelog="$(echo "$changelog" | head -c 4000)"
           metadata="$(jq -cn --arg version "$version" --arg changelog "$changelog" \
             '{version: $version} + (if $changelog == "" then {} else {changelog: $changelog} end)')"
-          args=(-F "metadata=$metadata")
+          # --form-string, not -F: -F parses ';' / '<' / '@' inside the value
+          # as form attributes and silently truncates the JSON (0.2.22 publish
+          # failed with "Metadata must be valid JSON" when the changelog
+          # contained "(...); the install ..." ).
+          args=(--form-string "metadata=$metadata")
           shopt -s nullglob
           for file in $PLUGIN_FILES; do
             args+=(-F "files=@$file")
