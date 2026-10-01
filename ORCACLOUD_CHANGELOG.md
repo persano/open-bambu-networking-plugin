@@ -1,3 +1,7 @@
+## 0.2.22 - 2026-10-01
+
+- Fixed "Failed to connect to printer" (issues #1 and #2): cloud access was left disabled because the `obn.conf` template ships `block_cloud = 1` (or the file has no `block_cloud` line at all, which also blocks). The installer now creates or repairs `block_cloud = 0` in `obn.conf` during install without touching your other settings, and the troubleshooting docs explain the fix plus LAN discovery requirements (firewall UDP 2021, same subnet).
+
 ## 0.2.21 - 2026-09-29
 
 - Fixed remote camera liveview: the cloud-pushed `liveview.prepare` is rejected with `err_code: 84033543` on secured printers, so the TUTK server never started and the camera timed out on "loading...". The plugin now sends its own signed `prepare` right after the ttcode mint - and re-sends it signed when the cloud's copy comes back rejected - restoring remote liveview.

@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.21"
+# version = "0.2.22"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -424,6 +424,80 @@ def get_status_dict():
         "arch": "x64" if sys.maxsize > 2**32 else "x86"
     }
 
+def ensure_obn_conf():
+    """Guarantee obn.conf lets the native library reach Bambu Cloud.
+
+    The template embedded in the native library ships `block_cloud = 1` (cloud
+    off), and a hand-written obn.conf that only adds the FAQ's logging lines has
+    no `block_cloud` key at all - the native default is also "block". Either way
+    cloud MQTT and the cloud message fallback stay blocked ("blocked by
+    block_cloud" / "cloud fallback blocked" in obn.log), so any printer the
+    plugin cannot reach over LAN fails with "Failed to connect to printer".
+    Only the block_cloud value is touched; every other key the user set
+    (logging, TLS, PEM paths) is preserved verbatim.
+
+    Returns a note for the install message, or "" when nothing changed.
+    """
+    conf_path = os.path.join(os.path.dirname(get_primary_plugin_dir()), "obn.conf")
+    key_line = re.compile(r"^\s*block_cloud\s*=\s*(\S+)")
+    block_header = (
+        "# 0 = talk to Bambu Cloud (required for cloud printing and for any\n"
+        "# printer that is not reachable over LAN). 1 = block cloud traffic.\n"
+        "block_cloud = 0\n"
+    )
+    try:
+        if not os.path.exists(conf_path):
+            with open(conf_path, "w", encoding="utf-8") as f:
+                f.write(
+                    "# Open Bamboo Networking configuration\n"
+                    "# Written by the Open Bamboo plugin installer. Add your own\n"
+                    "# keys below (log_to_file, log_level, ...); see the README.\n"
+                    "\n" + block_header
+                )
+            return " Enabled Bambu Cloud in obn.conf (block_cloud = 0)."
+
+        with open(conf_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+    except Exception as e:
+        return (
+            f" Could not update obn.conf ({e}); if the printer cannot connect,"
+            " set block_cloud = 0 in obn.conf and restart OrcaSlicer."
+        )
+
+    changed = False
+    have_key = False
+    for i, line in enumerate(lines):
+        if line.lstrip().startswith("#"):
+            continue
+        m = key_line.match(line)
+        if not m:
+            continue
+        have_key = True
+        if m.group(1).lower() in ("1", "true", "yes"):
+            lines[i] = "block_cloud = 0\n"
+            changed = True
+    if not have_key:
+        if lines and not lines[-1].endswith("\n"):
+            lines[-1] += "\n"
+        if lines and lines[-1].strip():
+            lines.append("\n")
+        lines.append(block_header)
+        changed = True
+
+    if changed:
+        try:
+            with open(conf_path, "w", encoding="utf-8") as f:
+                f.writelines(lines)
+        except Exception as e:
+            return (
+                f" Could not update obn.conf ({e}); if the printer cannot connect,"
+                " set block_cloud = 0 in obn.conf and restart OrcaSlicer."
+            )
+        if have_key:
+            return " Set block_cloud = 0 in obn.conf (it was blocking Bambu Cloud)."
+        return " Added block_cloud = 0 to obn.conf (enables Bambu Cloud)."
+    return ""
+
 def do_install():
     cleanup_old_files()
 
@@ -520,6 +594,8 @@ def do_install():
             "missing: enable Preferences > Enable Bambu network plug-in, then restart."
         )
 
+    obn_note = ensure_obn_conf()
+
     if failures:
         failed_dirs = sorted({t if t in plugin_dirs else os.path.dirname(t) for t, _ in failures})
         detail = "; ".join(f"{t}: {e}" for t, e in failures[:2])
@@ -527,12 +603,12 @@ def do_install():
             f"Open Bamboo library installed to {len(installed_targets)} location(s), "
             f"but not to {', '.join(failed_dirs)} ({detail}). Restart OrcaSlicer; if the "
             "library is not picked up, start OrcaSlicer as administrator and install again."
-            + cleanup_note + conf_note
+            + cleanup_note + conf_note + obn_note
         )
 
     return True, (
         "Open Bamboo library installed successfully "
-        f"({INSTALL_SERIES} series). Please restart OrcaSlicer." + cleanup_note + conf_note
+        f"({INSTALL_SERIES} series). Please restart OrcaSlicer." + cleanup_note + conf_note + obn_note
     )
 
 def do_uninstall():

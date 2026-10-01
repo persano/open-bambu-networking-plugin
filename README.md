@@ -6,7 +6,7 @@
 
 # Open Bamboo Networking Plugin for OrcaSlicer
 
-[![Release](https://img.shields.io/badge/release-v0.2.21-blue.svg)](https://github.com/persano/open-bambu-networking-plugin/releases)
+[![Release](https://img.shields.io/badge/release-v0.2.22-blue.svg)](https://github.com/persano/open-bambu-networking-plugin/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)]()
 [![OrcaCloud](https://img.shields.io/badge/OrcaCloud-Plugin%20Hub-teal.svg)](https://cloud.orcaslicer.com/app/plugins/shared-plugins/5d35283e-0378-474d-8d3a-6d8f718fddeb)
@@ -75,6 +75,7 @@ The pre-compiled binaries distributed inside this plugin (`bambu_networking.dll`
 4. Click the new **Open Bamboo** tab in the top navigation bar.
 5. Click **Install / Update Open Bamboo Library**.
 6. Restart OrcaSlicer.
+7. Log into your **Bambu Cloud** account (on OrcaSlicer 2.5+, be sure you log into **Bambu Cloud**, not only Orca Cloud).
 
 ---
 
@@ -96,6 +97,16 @@ The pre-compiled binaries distributed inside this plugin (`bambu_networking.dll`
 - OrcaSlicer 2.5.0 nightly builds
 
 ---
+
+## FAQ & Troubleshooting
+
+- **Do I need Bambu Studio installed?** No. This plugin is 100% standalone and clean-room. It bundles its own native networking libraries (`bambu_networking.dll` / `libbambu_networking.so`). You do not need Bambu Studio installed.
+- **Do I need `slicer_key.pem`?** No. Cryptographic envelope signing and field encryption are fully automated in memory. You do not need to extract, generate, or place any `slicer_key.pem` file.
+- **OrcaSlicer Developer Mode toggle:** The Developer mode toggle in OrcaSlicer preferences only unhides experimental slicing settings. It has no effect on printer connectivity or firmware security.
+- **Failed to connect to the printer / server:** First check `block_cloud = 0` in `obn.conf` (located at `%APPDATA%\OrcaSlicer\obn.conf` on Windows or `~/.config/OrcaSlicer/obn.conf` on Linux). The default `obn.conf` template ships `block_cloud = 1`, which blocks **all** cloud MQTT — if `obn.log` shows `bambu_network_connect_server: blocked by block_cloud` or `send_message: cloud fallback blocked`, the plugin has no path to the printer at all and the slicer reports "Failed to connect". The installer writes or updates this key automatically; if you created `obn.conf` by hand, add the line yourself and restart OrcaSlicer. Also ensure you are logged into Bambu Cloud. If the printer is on your LAN but never appears in `obn.log` as `ssdp: printer seen`, allow inbound UDP port 2021 for OrcaSlicer in your firewall and make sure the printer and PC share the same subnet (no guest/AP isolation or separate VLANs). If an ISP, firewall, or antivirus inspects or blocks TLS on port 8883, you can test bypassing TLS validation by setting `lan_tls_skip_verify = 1` in `obn.conf`. To generate diagnostic logs, add `log_to_file = 1` and `log_level = debug` to `obn.conf` and inspect `obn.log`.
+
+---
+
 
 ## How it works under the hood
 

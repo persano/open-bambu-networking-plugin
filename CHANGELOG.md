@@ -2,6 +2,11 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.22 - 2026-10-01
+
+- Fixed "Failed to connect to printer" reported in #1 and #2: the `obn.conf` template embedded in the native library ships `block_cloud = 1`, and a hand-written `obn.conf` containing only the FAQ's logging lines has no `block_cloud` key at all (the native default is also "block"). Either way cloud MQTT and the cloud message fallback stay disabled - `bambu_network_connect_server: blocked by block_cloud` / `send_message: cloud fallback blocked` in `obn.log` - so any printer the plugin cannot reach over LAN can never connect. The installer now creates `obn.conf` with `block_cloud = 0` when the file is missing, adds the key when it is absent, and flips an explicit `block_cloud = 1` back to `0`, preserving every other user setting (logging, TLS, PEM paths); the install message reports what changed.
+- Troubleshooting docs (README FAQ and OrcaCloud description) now lead with the `block_cloud = 0` check, document the `blocked by block_cloud` log signature, and add inbound UDP 2021 / same-subnet guidance for LAN discovery.
+
 ## 0.2.21 - 2026-09-29
 
 - Restored client-side signed `liveview.prepare` (revert of upstream `8080cb9`, reported as ClusterM/open-bamboo-networking#112). The cloud-pushed `prepare` that replaced it is rejected with `err_code: 84033543` on secured firmware - reproduced 10/10 on a P1S at `01.10.00.00` with Option B credentials loaded - so `ipcam.tutk_server` never reaches `enable`, `wait_tutk_ready` times out, and the remote liveview dies in TUTK rendezvous. The plugin now publishes a signed `prepare` immediately after the ttcode mint, re-publishes a signed copy when the cloud's dispatch comes back rejected (`rescue_cloud_liveview`), and signs `liveview`/`prepare` frames again (`would_sign` / `signable_root_key`).
