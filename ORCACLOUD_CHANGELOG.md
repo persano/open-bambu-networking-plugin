@@ -1,6 +1,8 @@
 ## 0.2.23 - 2026-10-02
 
 - Fixed a `Could not update obn.conf (...)` warning that OrcaSlicer's plugin security audit made appear on every install: the audit blocks the installer from touching any `.conf` file, so the `block_cloud = 0` cloud-enable step always reported a permission error - even when your configuration was already correct. The installer now applies that step through the bundled networking library, which the audit allows; your other settings are still never touched.
+- AMS panel and camera play button now activate promptly when you select a printer - they could previously stay disabled for up to ~14 seconds while the plugin waited for a telemetry snapshot.
+- Camera liveview over LAN starts more reliably: the plugin remembers the printer's address between sessions instead of waiting for the next discovery broadcast, and falls back to MJPEG on printers that do not expose an RTSP port.
 
 ## 0.2.22 - 2026-10-01
 
