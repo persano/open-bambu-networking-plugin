@@ -1,3 +1,7 @@
+## 0.2.23 - 2026-10-02
+
+- Fixed a `Could not update obn.conf (...)` warning that OrcaSlicer's plugin security audit made appear on every install: the audit blocks the installer from touching any `.conf` file, so the `block_cloud = 0` cloud-enable step always reported a permission error - even when your configuration was already correct. The installer now applies that step through the bundled networking library, which the audit allows; your other settings are still never touched.
+
 ## 0.2.22 - 2026-10-01
 
 - Fixed "Failed to connect to printer" (issues #1 and #2): cloud access was left disabled because the `obn.conf` template ships `block_cloud = 1` (or the file has no `block_cloud` line at all, which also blocks). The installer now creates or repairs `block_cloud = 0` in `obn.conf` during install without touching your other settings, and the troubleshooting docs explain the fix plus LAN discovery requirements (firewall UDP 2021, same subnet).

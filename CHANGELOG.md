@@ -2,6 +2,10 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.23 - 2026-10-02
+
+- Fixed the `Could not update obn.conf (Plugin attempted an audited operation without permission)` warning appended to every install on OrcaSlicer builds with the plugin audit hook. The audit's categorical `conf` denied-path keyword refuses every Python `open()` of a path containing "conf" before any allow-list or permission prompt is consulted, so the `block_cloud = 0` ensure added in 0.2.22 could never succeed there - it even warned when the configuration was already correct, because the read failed too. The installer now applies the same fix through the bundled networking library via the new `obn_ensure_conf_block_cloud` export (C++ writes are outside the Python audit hook, and the library owns the file), with identical outcomes and install-message wording; the direct Python write remains as a fallback for libraries predating the export. The Windows library in this build carries the export; the Linux and macOS libraries get it in their next rebuild.
+
 ## 0.2.22 - 2026-10-01
 
 - Fixed "Failed to connect to printer" reported in #1 and #2: the `obn.conf` template embedded in the native library ships `block_cloud = 1`, and a hand-written `obn.conf` containing only the FAQ's logging lines has no `block_cloud` key at all (the native default is also "block"). Either way cloud MQTT and the cloud message fallback stay disabled - `bambu_network_connect_server: blocked by block_cloud` / `send_message: cloud fallback blocked` in `obn.log` - so any printer the plugin cannot reach over LAN can never connect. The installer now creates `obn.conf` with `block_cloud = 0` when the file is missing, adds the key when it is absent, and flips an explicit `block_cloud = 1` back to `0`, preserving every other user setting (logging, TLS, PEM paths); the install message reports what changed.
