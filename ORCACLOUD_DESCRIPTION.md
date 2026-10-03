@@ -1,6 +1,6 @@
 Open Bamboo Networking connects your Bambu Lab printer to OrcaSlicer with full cloud print dispatch, remote camera liveview, and AMS slot sync, without requiring closed source vendor libraries or Developer Mode on the printer.
 
-![Open Bambu Network not Installed](https://api.orcaslicer.com/api/v1/bundles/media/5a098184-b7bd-4fbd-8031-a6c6aff8ca99/content?expires=1790358429&signature=qi1l3CmC_62buxalYt90ifxo6Nd72_p-hZuWn8LVqkg)
+![Open Bambu Network not Installed](https://api.orcaslicer.com/api/v1/bundles/media/5882a3ef-d5f4-4a8a-9a5a-cd2c4c913bfb/content)
 
 ## What it does
 
@@ -24,7 +24,7 @@ Open Bamboo Networking connects your Bambu Lab printer to OrcaSlicer with full c
 - **Operating systems:** Windows 10/11 (x64), Linux (x64), and macOS Apple Silicon (arm64).
 - **OrcaSlicer versions:** OrcaSlicer v2.3.0+, v2.4.0 official, and v2.5.0 nightly builds.
 
-![Open Bambu Network Installed](https://api.orcaslicer.com/api/v1/bundles/media/5de8526d-5539-4059-8cca-f672f741c6a7/content?expires=1790358429&signature=CNbvTqPZSmyaCLwtHTSnxgIKZs8dvLsEc4OFUu-Hkb0)
+![Open Bambu Network Installed](https://api.orcaslicer.com/api/v1/bundles/media/56b81240-7a2d-4aaf-b45e-853d360da535/content)
 
 ## How to get started
 

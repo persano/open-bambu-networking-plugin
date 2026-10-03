@@ -6,7 +6,7 @@ All notable changes to Open Bamboo Networking are documented in this file.
 
 - Signed commands now work from a clean config. The bundled Windows networking library implements `bambu_network_update_cert`: when the plugin detects a secured printer (or first needs to sign a command) it fetches the shared app certificate, CRL and signing key from Bambu's certificate endpoint - the same endpoint Bambu's own plugin uses - cross-checks the fetched key against the certificate, and writes `slicer_cert.pem` / `slicer_crl.pem` / `slicer_key.pem` into the plugin's config directory. This is the fix for the `84033543` rejections reported in #2: the signing material is present out of the box and is refreshed automatically whenever Bambu rotates the certificate. Hand-placed copies still override the automatic ones and are never overwritten.
 - Windows library rebuilt from open-bamboo-networking `ebfd02c`, still at ABI `02.08.01.99`; the Linux and macOS libraries get this in their next rebuild. Credential cipher/fetch unit tests and a Windows end-to-end probe (fresh config directory to HTTP 200, certificate chain matching working Studio-extracted credentials) pass.
-- FAQ and OrcaCloud description now document the automatic app-certificate provisioning.
+- The README FAQ now documents the automatic app-certificate provisioning (the OrcaCloud page description is maintained separately on the plugin page).
 
 ## 0.2.23 - 2026-10-02
 
