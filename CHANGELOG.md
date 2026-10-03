@@ -2,6 +2,12 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.24 - 2026-10-03
+
+- Signed commands now work from a clean config. The bundled Windows networking library implements `bambu_network_update_cert`: when the plugin detects a secured printer (or first needs to sign a command) it fetches the shared app certificate, CRL and signing key from Bambu's certificate endpoint - the same endpoint Bambu's own plugin uses - cross-checks the fetched key against the certificate, and writes `slicer_cert.pem` / `slicer_crl.pem` / `slicer_key.pem` into the plugin's config directory. This is the fix for the `84033543` rejections reported in #2: the signing material is present out of the box and is refreshed automatically whenever Bambu rotates the certificate. Hand-placed copies still override the automatic ones and are never overwritten.
+- Windows library rebuilt from open-bamboo-networking `ebfd02c`, still at ABI `02.08.01.99`; the Linux and macOS libraries get this in their next rebuild. Credential cipher/fetch unit tests and a Windows end-to-end probe (fresh config directory to HTTP 200, certificate chain matching working Studio-extracted credentials) pass.
+- FAQ and OrcaCloud description now document the automatic app-certificate provisioning.
+
 ## 0.2.23 - 2026-10-02
 
 - Fixed the `Could not update obn.conf (Plugin attempted an audited operation without permission)` warning appended to every install on OrcaSlicer builds with the plugin audit hook. The audit's categorical `conf` denied-path keyword refuses every Python `open()` of a path containing "conf" before any allow-list or permission prompt is consulted, so the `block_cloud = 0` ensure added in 0.2.22 could never succeed there - it even warned when the configuration was already correct, because the read failed too. The installer now applies the same fix through the bundled networking library via the new `obn_ensure_conf_block_cloud` export (C++ writes are outside the Python audit hook, and the library owns the file), with identical outcomes and install-message wording; the direct Python write remains as a fallback for libraries predating the export. The Windows library in this build carries the export; the Linux and macOS libraries get it in their next rebuild.

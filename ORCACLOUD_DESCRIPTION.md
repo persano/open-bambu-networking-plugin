@@ -37,7 +37,7 @@ Open Bamboo Networking connects your Bambu Lab printer to OrcaSlicer with full c
 ## FAQ & Troubleshooting
 
 - **Do I need Bambu Studio installed?** No. This plugin is 100% standalone and clean-room. You do not need Bambu Studio installed, and no files need to be copied.
-- **Do I need slicer_key.pem?** No. Cryptographic envelope signing is fully automated in memory. You do not need to extract, generate, or place any slicer_key.pem file.
+- **Do I need slicer_key.pem?** No. Cryptographic envelope signing is fully automated in memory. You do not need to extract, generate, or place any slicer_key.pem file. The printer app certificate is provisioned automatically too - since 0.2.24 the bundled library fetches and refreshes it on its own.
 - **OrcaSlicer Developer Mode toggle:** The Developer mode toggle in OrcaSlicer preferences only unhides experimental slicer settings. It has no effect on printer connectivity or firmware security.
 - **Failed to connect to printer / server:** First check `block_cloud = 0` in `obn.conf` in your OrcaSlicer configuration folder (`%APPDATA%\OrcaSlicer\obn.conf` on Windows). The default `obn.conf` template ships `block_cloud = 1`, which blocks all cloud MQTT — if the log shows `blocked by block_cloud`, the plugin has no path to the printer and the slicer reports "Failed to connect". The installer writes or updates this key automatically; if you created `obn.conf` by hand, add the line yourself and restart OrcaSlicer. Also ensure you are logged into Bambu Cloud. If your network or ISP restricts TLS on port 8883, you can test adding `lan_tls_skip_verify = 1` to `obn.conf`. For LAN discovery issues, allow inbound UDP port 2021 for OrcaSlicer in your firewall and keep the printer and PC on the same subnet.
 
