@@ -9,7 +9,7 @@
   ],
   "enabled": true,
   "installed_from": "local",
-  "installed_version": "0.2.22",
+  "installed_version": "0.2.25",
   "permissions": {
     "fs_read": [],
     "fs_readwrite": [],

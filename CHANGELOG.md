@@ -2,6 +2,13 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.25 - 2026-10-06
+
+- Fixed remote camera live view on H2-series printers: the `/user/ttcode` mint now sends the proof-of-possession header pair `x-bbl-app-certification-id` / `x-bbl-device-security-sign` together with a populated `X-BBL-Executable-info` attestation, which the cloud requires on those models (without them it answers 403 `{"code":8}` and the camera stays on "loading"). The proof-of-possession pair is only attached when `slicer_key.pem` actually belongs to `slicer_cert.pem`, and the match is re-checked on every mint, so a certificate fetch that finishes after startup can no longer disable it for the whole session.
+- New `executable_info` key in `obn.conf`: overrides the built-in BambuStudio attestation without a rebuild, for when Bambu rotates it and the built-in copy stops being accepted.
+- All three libraries (Windows, Linux, macOS) rebuilt from open-bamboo-networking `6f85987` (the H2 fix itself is `d159fb9`), still at ABI `02.08.01.99`. The automatic app-certificate provisioning that 0.2.24 shipped Windows-only is now in the Linux and macOS libraries as well.
+- Verified on hardware (P1S, fw `01.10.00.00`): ttcode mint answers 200 with the proof-of-possession pair, the printer accepts the signed `ttcode_enc` prepare, the camera plays, and no `84033543` appears.
+
 ## 0.2.24 - 2026-10-03
 
 - Signed commands now work from a clean config. The bundled Windows networking library implements `bambu_network_update_cert`: when the plugin detects a secured printer (or first needs to sign a command) it fetches the shared app certificate, CRL and signing key from Bambu's certificate endpoint - the same endpoint Bambu's own plugin uses - cross-checks the fetched key against the certificate, and writes `slicer_cert.pem` / `slicer_crl.pem` / `slicer_key.pem` into the plugin's config directory. This is the fix for the `84033543` rejections reported in #2: the signing material is present out of the box and is refreshed automatically whenever Bambu rotates the certificate. Hand-placed copies still override the automatic ones and are never overwritten.

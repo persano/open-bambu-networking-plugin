@@ -1,3 +1,9 @@
+## 0.2.25 - 2026-10-06
+
+- Fixed remote camera live view on H2-series printers: the slicer now presents the same proof-of-possession headers as the stock client when it requests the camera connection, which those printers require. They previously answered 403 and the camera never started.
+- The automatic app-certificate provisioning introduced in 0.2.24 for Windows now ships in the Linux and macOS libraries too.
+- Networking libraries updated on all three platforms; the full chain (mint, prepare, live view) verified end to end on a P1S.
+
 ## 0.2.23 - 2026-10-02
 
 - Fixed a `Could not update obn.conf (...)` warning that OrcaSlicer's plugin security audit made appear on every install: the audit blocks the installer from touching any `.conf` file, so the `block_cloud = 0` cloud-enable step always reported a permission error - even when your configuration was already correct. The installer now applies that step through the bundled networking library, which the audit allows; your other settings are still never touched.
