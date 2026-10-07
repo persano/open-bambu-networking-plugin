@@ -1,3 +1,8 @@
+## 0.2.26 - 2026-10-07
+
+- Fixed `Failed to send the print job ... create_task: HTTP 403 (The client does not have access rights to the content.)` on installs that had not overridden `client_name`: the plugin now presents the client name the Bambu cloud requires (`BambuStudio`) instead of its own, which the cloud rejects on print registration and on the camera mint. If your `obn.conf` already says `client_name = BambuStudio`, nothing changes for you; if it says `OpenBambooNetworking`, change that line once, your config is never overwritten.
+- The networking libraries now log a clear warning when a config sends a rejected client name, so this class of failure is diagnosable from the log alone.
+- Verified end to end on a P1S: the print registers with the cloud and the printer accepts the job.
 ## 0.2.25 - 2026-10-06
 
 - Fixed remote camera live view on H2-series printers: the slicer now presents the same proof-of-possession headers as the stock client when it requests the camera connection, which those printers require. They previously answered 403 and the camera never started.

@@ -2,6 +2,12 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.26 - 2026-10-07
+
+- Cloud print and "local print with record" failed with HTTP 403 `The client does not have access rights to the content.` on every install that had not overridden `client_name`: the shipped default `OpenBambooNetworking` is rejected by `POST /v1/user-service/my/task`, which only accepts the stock client name `BambuStudio`, and the `/user/ttcode` camera mint has the same requirement. The default in `obn.conf` and the empty-config fallback are now `BambuStudio`, and `create_task` logs a warning naming the offending value instead of only failing against the server. Reported from a Chinese-cloud H2D where every other API answered 200. Existing configs keep their explicit line and need the one-line edit to `client_name = BambuStudio`.
+- `plugin_runner` now defaults to the same client name as the runtime so captures and probes reproduce plugin behavior.
+- Libraries rebuilt from open-bamboo-networking `8e3dfb2`, still at ABI `02.08.01.99`.
+- Verified on hardware (P1S): `create_task` answers a real `task_id` instead of 403, the printer accepts the signed `project_file` dispatch (`print_type: cloud`) and the job reaches PREPARE.
 ## 0.2.25 - 2026-10-06
 
 - Fixed remote camera live view on H2-series printers: the `/user/ttcode` mint now sends the proof-of-possession header pair `x-bbl-app-certification-id` / `x-bbl-device-security-sign` together with a populated `X-BBL-Executable-info` attestation, which the cloud requires on those models (without them it answers 403 `{"code":8}` and the camera stays on "loading"). The proof-of-possession pair is only attached when `slicer_key.pem` actually belongs to `slicer_cert.pem`, and the match is re-checked on every mint, so a certificate fetch that finishes after startup can no longer disable it for the whole session.
