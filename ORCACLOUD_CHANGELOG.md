@@ -1,3 +1,9 @@
+## 0.2.27 - 2026-10-08
+
+- New optional `mytask_pop = 1` setting in `obn.conf` for cloud prints that fail with `HTTP 403 (The client does not have access rights to the content.)` on `POST /my/task` even though `client_name = BambuStudio` and everything else in the slicer talks to the cloud fine, the signature seen on the Chinese cloud. Setting it adds the same proof-of-possession headers stock Bambu Studio sends when registering a print. It is off by default: if your prints already work, nothing changes, and if no signing material is present the headers are simply not sent. Add the line to `obn.conf` and restart the slicer to try it; the log states whether the headers were attached.
+- Networking libraries updated on all three platforms from open-bamboo-networking `ce029b2`, still at ABI `02.08.01.99`.
+- Unit tested, not yet verified on the reported Chinese-cloud H2D; this release ships so that verification can happen.
+
 ## 0.2.26 - 2026-10-07
 
 - Fixed `Failed to send the print job ... create_task: HTTP 403 (The client does not have access rights to the content.)` on installs that had not overridden `client_name`: the plugin now presents the client name the Bambu cloud requires (`BambuStudio`) instead of its own, which the cloud rejects on print registration and on the camera mint. If your `obn.conf` already says `client_name = BambuStudio`, nothing changes for you; if it says `OpenBambooNetworking`, change that line once, your config is never overwritten.

@@ -2,6 +2,12 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.27 - 2026-10-08
+
+- New opt-in `mytask_pop` key in `obn.conf` (default `0`): when set to `1`, `POST /v1/user-service/my/task` (cloud print / print history record) additionally carries the proof-of-possession header pair `x-bbl-app-certification-id` / `x-bbl-device-security-sign`. This targets a Chinese-cloud (`api.bambulab.cn`) H2D where, with `client_name = BambuStudio` and every other API answering 200, exactly this call answered 403 while stock Bambu Studio printed fine on the same account and printer, and research `10.05` lists `/my/task` as proof-of-possession-required on verified printers. The default keeps the historical bearer-only request that `api.bambulab.com` accepts, so nothing changes for existing installs; the flag is key-match guarded and, with no slicer key/cert present, sends no headers at all rather than a blank pair. If the flag is on but the pair cannot be attached, `obn.log` warns instead of failing silently.
+- Libraries rebuilt from open-bamboo-networking `ce029b2`, still at ABI `02.08.01.99`.
+- Covered by unit tests (flag off by default, flag on with no signing material attaches nothing, flag on with a matching key/cert attaches the HTTP `issuer:serial` form of the pair); the CN-cloud hardware case is still unverified and is what this build is released for.
+
 ## 0.2.26 - 2026-10-07
 
 - Cloud print and "local print with record" failed with HTTP 403 `The client does not have access rights to the content.` on every install that had not overridden `client_name`: the shipped default `OpenBambooNetworking` is rejected by `POST /v1/user-service/my/task`, which only accepts the stock client name `BambuStudio`, and the `/user/ttcode` camera mint has the same requirement. The default in `obn.conf` and the empty-config fallback are now `BambuStudio`, and `create_task` logs a warning naming the offending value instead of only failing against the server. Reported from a Chinese-cloud H2D where every other API answered 200. Existing configs keep their explicit line and need the one-line edit to `client_name = BambuStudio`.
