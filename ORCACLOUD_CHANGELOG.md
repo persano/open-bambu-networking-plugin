@@ -1,3 +1,7 @@
+## 0.2.28 - 2026-10-08
+
+- Networking libraries updated on all three platforms from open-bamboo-networking `38ac86a`, still at ABI `02.08.01.99`. The upstream project merged the signed camera-prepare fix this plugin has shipped since 0.2.21 (camera behavior unchanged) and a fix that makes the certificate-list query work on firmware that rejects the old form, so app-certificate provisioning can read the printer's answer. No settings changed; existing installs keep working as before.
+
 ## 0.2.27 - 2026-10-08
 
 - New optional `mytask_pop = 1` setting in `obn.conf` for cloud prints that fail with `HTTP 403 (The client does not have access rights to the content.)` on `POST /my/task` even though `client_name = BambuStudio` and everything else in the slicer talks to the cloud fine, the signature seen on the Chinese cloud. Setting it adds the same proof-of-possession headers stock Bambu Studio sends when registering a print. It is off by default: if your prints already work, nothing changes, and if no signing material is present the headers are simply not sent. Add the line to `obn.conf` and restart the slicer to try it; the log states whether the headers were attached.

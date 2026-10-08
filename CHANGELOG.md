@@ -2,6 +2,14 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.28 - 2026-10-08
+
+- Merged ClusterM/open-bamboo-networking master into the fork: upstream accepted our revert of `8080cb9` as PR #113 and merged it verbatim - all six reverted files are byte-identical to the PR head - so the signed client-side `liveview.prepare` we have shipped since 0.2.21 is now the upstream state as well.
+- Takes upstream `2cfd2ba` (app_cert_list): the query now sends `"type":"app"` and checks the report's `result` - without `type` the firmware replies `result=FAIL` and no `cert_ids`, so the harvest was empty, and non-SUCCESS replies now warn in `obn.log` instead of being parsed silently.
+- Takes upstream TUTK research updates (`93d7d46`, `7243b88`) and the `plugin_runner --client-version` flag, combined with our `BambuStudio` `client_name` default. Drops `7243b88`'s `TutkSession.cpp` re-indent: whitespace-only (`diff -w` empty), it only mangled indentation.
+- Conflict resolution kept our superset: `rescue_cloud_project_file`, `seq_json_value` sequence handling, trailing-sibling signing, and the 84033543/65543 frame filters are unchanged; also removed a duplicate `rescue_cloud_liveview` declaration the upstream revert restored in `agent.hpp`.
+- Libraries rebuilt from open-bamboo-networking `38ac86a`, still at ABI `02.08.01.99`. `ctest` 13/13 passed (incl. `signing`, `plugin_symbols`, `state_persist`).
+
 ## 0.2.27 - 2026-10-08
 
 - New opt-in `mytask_pop` key in `obn.conf` (default `0`): when set to `1`, `POST /v1/user-service/my/task` (cloud print / print history record) additionally carries the proof-of-possession header pair `x-bbl-app-certification-id` / `x-bbl-device-security-sign`. This targets a Chinese-cloud (`api.bambulab.cn`) H2D where, with `client_name = BambuStudio` and every other API answering 200, exactly this call answered 403 while stock Bambu Studio printed fine on the same account and printer, and research `10.05` lists `/my/task` as proof-of-possession-required on verified printers. The default keeps the historical bearer-only request that `api.bambulab.com` accepts, so nothing changes for existing installs; the flag is key-match guarded and, with no slicer key/cert present, sends no headers at all rather than a blank pair. If the flag is on but the pair cannot be attached, `obn.log` warns instead of failing silently.
