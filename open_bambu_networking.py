@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.28"
+# version = "0.2.29"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -30,8 +30,12 @@ import orca
 # OrcaSlicer binds the network library by its AA.BB.CC series and only accepts the series its
 # AVAILABLE_NETWORK_VERSIONS whitelist declares. A library reporting any other series (02.08.02)
 # is refused, the configured version ping-pongs, and the slicer keeps re-offering its own
-# download with "Bambu Network plug-in not detected". The install series is therefore pinned.
-INSTALL_SERIES = "02.08.01"
+# download with "Bambu Network plug-in not detected". The installer therefore pins the series
+# and ships both of the ones OrcaSlicer accepts: 02.08.04 is the current latest (OrcaSlicer
+# PR #16202), 02.08.01 remains for builds whose whitelist predates it.
+INSTALL_SERIES = "02.08.04"
+SECONDARY_SERIES = "02.08.01"
+SUPPORTED_SERIES = (INSTALL_SERIES, SECONDARY_SERIES)
 LEGACY_SERIES = "01.10.01"
 VERSION_RE = re.compile(rb"0[12]\.\d{2}\.\d{2}\.\d{2}(?:\.\d{2})?")
 
@@ -116,6 +120,21 @@ def get_bundled_plugin_path():
         return os.path.join(plugin_root, "bin", "macos_arm64", "libbambu_networking.dylib")
     return ""
 
+def get_bundled_secondary_path():
+    """The second series build shipped next to the primary one.
+
+    OrcaSlicer builds without PR #16202 only whitelist 02.08.01, so they resolve
+    `bambu_networking_02.08.01.*` and would report the plug-in missing when only
+    the 02.08.04 series files exist. Returns "" when the wheel carries no
+    secondary build.
+    """
+    primary = get_bundled_plugin_path()
+    if not primary:
+        return ""
+    prefix, suffix = get_lib_prefix_suffix()
+    candidate = os.path.join(os.path.dirname(primary), f"{prefix}_{SECONDARY_SERIES}{suffix}")
+    return candidate if os.path.exists(candidate) else ""
+
 def get_sidecar_names():
     """Companion modules OrcaSlicer loads next to the network library.
 
@@ -160,9 +179,10 @@ def read_reported_version(path):
     matches = [m.group(0).decode("ascii") for m in VERSION_RE.finditer(data)]
     if not matches:
         return ""
-    for v in matches:
-        if v.startswith(INSTALL_SERIES + "."):
-            return v
+    for series in SUPPORTED_SERIES:
+        for v in matches:
+            if v.startswith(series + "."):
+                return v
     return matches[0]
 
 def series_of(version):
@@ -174,12 +194,13 @@ def bundled_series_warning():
     version = read_reported_version(get_bundled_plugin_path())
     if not version:
         return ""
-    if series_of(version) in (INSTALL_SERIES, LEGACY_SERIES):
+    if series_of(version) in SUPPORTED_SERIES + (LEGACY_SERIES,):
         return ""
     return (
         f"Bundled library reports {version}, but OrcaSlicer only loads the "
-        f"{INSTALL_SERIES} series, so installing it leaves the slicer unable to "
-        f"detect the plug-in. Rebuild it with -DOBN_VERSION={INSTALL_SERIES}.99."
+        f"{' and '.join(SUPPORTED_SERIES)} series, so installing it leaves the "
+        f"slicer unable to detect the plug-in. Rebuild it with "
+        f"-DOBN_VERSION={INSTALL_SERIES}.99."
     )
 
 def read_slicer_config():
@@ -208,12 +229,13 @@ def config_warning(conf):
             "the slicer reports it as missing. Enable it under Preferences > Enable Bambu "
             "network plug-in, then restart."
         )
-    if conf["installed_networking"] is True and conf["network_plugin_version"] not in ("", INSTALL_SERIES):
-        if series_of(conf["network_plugin_version"]) != INSTALL_SERIES:
+    if conf["installed_networking"] is True and conf["network_plugin_version"]:
+        if series_of(conf["network_plugin_version"]) not in SUPPORTED_SERIES:
             return (
                 f"OrcaSlicer is configured for network plug-in {conf['network_plugin_version']}, "
-                f"which is not the {INSTALL_SERIES} series this build installs. Install once to "
-                "let the slicer re-point the configuration."
+                f"which is none of the series this build installs "
+                f"({', '.join(SUPPORTED_SERIES)}). Install once to let the slicer "
+                "re-point the configuration."
             )
     return ""
 
@@ -359,6 +381,8 @@ def get_status_dict():
 
     bundled_exists = os.path.exists(bundled)
     bundled_hash = get_file_hash(bundled)
+    bundled_secondary_hash = get_file_hash(get_bundled_secondary_path())
+    valid_hashes = {h for h in (bundled_hash, bundled_secondary_hash) if h}
 
     # Check if ANY active library across all plugin directories is Open Bamboo
     is_open_bamboo = False
@@ -369,7 +393,7 @@ def get_status_dict():
         try:
             for f in os.listdir(pdir):
                 if (f.startswith(prefix) and f.endswith(suffix)) and not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
-                    if get_file_hash(os.path.join(pdir, f)) == bundled_hash:
+                    if get_file_hash(os.path.join(pdir, f)) in valid_hashes:
                         is_open_bamboo = True
                         break
         except Exception:
@@ -395,11 +419,11 @@ def get_status_dict():
 
     active_version = read_reported_version(display_target) if display_exists else ""
     warning = ""
-    if active_version and series_of(active_version) not in (INSTALL_SERIES, LEGACY_SERIES):
+    if active_version and series_of(active_version) not in SUPPORTED_SERIES + (LEGACY_SERIES,):
         warning = (
             f"Installed library reports {active_version}, but OrcaSlicer only loads the "
-            f"{INSTALL_SERIES} series. It will keep reporting the plug-in as missing until "
-            f"the {INSTALL_SERIES} build is installed."
+            f"{' and '.join(SUPPORTED_SERIES)} series. It will keep reporting the plug-in "
+            "as missing until a supported build is installed."
         )
     if not warning:
         warning = bundled_series_warning()
@@ -571,7 +595,10 @@ def do_install():
     if series_warning:
         return False, series_warning
 
-    bundled_hash = get_file_hash(bundled)
+    bundled_secondary = get_bundled_secondary_path()
+    bundled_hashes = {bundled: get_file_hash(bundled)}
+    if bundled_secondary:
+        bundled_hashes[bundled_secondary] = get_file_hash(bundled_secondary)
     prefix, suffix = get_lib_prefix_suffix()
     versioned_prefix = prefix + "_"
 
@@ -586,22 +613,37 @@ def do_install():
         except Exception as e:
             failures.append((pdir, str(e)))
             continue
-        default_target = os.path.join(pdir, f"{prefix}{suffix}")
-        series_target = os.path.join(pdir, f"{prefix}_{INSTALL_SERIES}{suffix}")
-        targets_to_update = {default_target, series_target}
+
+        # Both series files are written: OrcaSlicer binds `_02.08.04` on builds whose
+        # whitelist has PR #16202, `_02.08.01` on older ones, and the unversioned
+        # default as a last fallback. Each series keeps its own build bytes.
+        targets_to_update = {
+            os.path.join(pdir, f"{prefix}{suffix}"): bundled,
+            os.path.join(pdir, f"{prefix}_{INSTALL_SERIES}{suffix}"): bundled,
+        }
+        if bundled_secondary:
+            targets_to_update[os.path.join(pdir, f"{prefix}_{SECONDARY_SERIES}{suffix}")] = bundled_secondary
 
         try:
             for f in os.listdir(pdir):
-                if (f.startswith(versioned_prefix) and f.endswith(suffix)) or f == os.path.basename(default_target):
-                    if not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
-                        targets_to_update.add(os.path.join(pdir, f))
+                if not (f.startswith(versioned_prefix) and f.endswith(suffix)):
+                    continue
+                if f.endswith(".bak") or f.endswith(".vendor_backup") or ".old" in f or ".pending_delete" in f:
+                    continue
+                ver = f[len(versioned_prefix):-len(suffix)]
+                if ver.startswith(SECONDARY_SERIES):
+                    if bundled_secondary:
+                        targets_to_update[os.path.join(pdir, f)] = bundled_secondary
+                elif ver.startswith(INSTALL_SERIES):
+                    targets_to_update[os.path.join(pdir, f)] = bundled
+                # Other 02.08.* series are left for the cleanup below to remove.
         except Exception:
             pass
 
         for t in sorted(targets_to_update):
+            src = targets_to_update[t]
             if os.path.exists(t):
-                t_hash = get_file_hash(t)
-                if t_hash == bundled_hash:
+                if get_file_hash(t) == bundled_hashes[src]:
                     installed_targets.append(t)
                     continue
                 bak = t + ".bak"
@@ -611,7 +653,7 @@ def do_install():
                     except Exception:
                         pass
             try:
-                safe_copy(bundled, t)
+                safe_copy(src, t)
                 installed_targets.append(t)
             except Exception as e:
                 failures.append((t, str(e)))
@@ -626,7 +668,7 @@ def do_install():
                 if f.endswith(".bak") or f.endswith(".vendor_backup") or ".old" in f or ".pending_delete" in f:
                     continue
                 series = f[len(versioned_prefix):-len(suffix)]
-                if series.startswith("02.08.") and not series.startswith(INSTALL_SERIES):
+                if series.startswith("02.08.") and not any(series.startswith(s) for s in SUPPORTED_SERIES):
                     try:
                         safe_remove(os.path.join(pdir, f))
                         conflicting_removed.append(f)
@@ -670,7 +712,8 @@ def do_install():
 
     return True, (
         "Open Bamboo library installed successfully "
-        f"({INSTALL_SERIES} series). Please restart OrcaSlicer." + cleanup_note + conf_note + obn_note
+        f"({', '.join(SUPPORTED_SERIES)} series files). Please restart OrcaSlicer."
+        + cleanup_note + conf_note + obn_note
     )
 
 def do_uninstall():
@@ -730,6 +773,8 @@ def do_restore_stock():
     versioned_prefix = prefix + "_"
     bundled = get_bundled_plugin_path()
     bundled_hash = get_file_hash(bundled)
+    bundled_secondary_hash = get_file_hash(get_bundled_secondary_path())
+    obn_hashes = {h for h in (bundled_hash, bundled_secondary_hash) if h}
 
     # First, locate any master stock backup across all plugin directories
     master_stock = ""
@@ -740,7 +785,8 @@ def do_restore_stock():
             for f in os.listdir(pdir):
                 if f.endswith(".bak") and prefix in f:
                     full_f = os.path.join(pdir, f)
-                    if get_file_hash(full_f) != bundled_hash:
+                    # An .bak of a previous Open Bamboo install is not a stock copy.
+                    if get_file_hash(full_f) not in obn_hashes:
                         master_stock = full_f
                         break
         except Exception:
@@ -777,7 +823,7 @@ def do_restore_stock():
             for f in os.listdir(pdir):
                 if (f.startswith(prefix) and f.endswith(suffix)) and not f.endswith(".bak") and not f.endswith(".vendor_backup") and ".old" not in f and ".pending_delete" not in f:
                     full_f = os.path.join(pdir, f)
-                    if get_file_hash(full_f) == bundled_hash:
+                    if get_file_hash(full_f) in obn_hashes:
                         try:
                             safe_copy(master_stock, full_f)
                             restored_files.append(f)

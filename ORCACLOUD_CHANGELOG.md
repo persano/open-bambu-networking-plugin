@@ -1,3 +1,10 @@
+## 0.2.29 - 2026-10-09
+
+- Fixed "Bambu Network plug-in not detected" on current official OrcaSlicer builds: OrcaSlicer PR #16202 (merged 2026-10-07) switched to the new `02.08.04` plug-in series and no longer accepts `02.08.01`, which every earlier release installed. One install now places both series files, so official builds bind the new `02.08.04` file while older slicer builds keep binding `02.08.01` exactly as before - nothing to reconfigure.
+- `mytask_pop` now defaults to automatic: on the Chinese cloud the proof-of-possession headers are attached without editing `obn.conf`, the case the reporter confirmed (with the flag on the print went through, off reproduced the exact HTTP 403); other clouds send the same request as before. If your `obn.conf` already contains `mytask_pop = 0` (written by the 0.2.27/0.2.28 template), delete that line or set `mytask_pop = auto` to opt into the new default; `mytask_pop = 1` keeps forcing the headers on.
+- New `filter_mqtt_hms_65543` key in `obn.conf` (default on) from upstream: configures the filter for the spurious `84033543`/65543 HMS frames seen after cloud prepares.
+- Networking libraries updated on all three platforms, rebuilt from open-bamboo-networking `97b6192`.
+
 ## 0.2.28 - 2026-10-08
 
 - Networking libraries updated on all three platforms from open-bamboo-networking `38ac86a`, still at ABI `02.08.01.99`. The upstream project merged the signed camera-prepare fix this plugin has shipped since 0.2.21 (camera behavior unchanged) and a fix that makes the certificate-list query work on firmware that rejects the old form, so app-certificate provisioning can read the printer's answer. No settings changed; existing installs keep working as before.
