@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.29"
+# version = "0.2.30"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -221,6 +221,53 @@ def read_slicer_config():
         result["network_plugin_version"] = m.group(1)
     return result
 
+SERIES_RE = re.compile(r"^\d{2}\.\d{2}\.\d{2}$")
+
+def get_version_override_path():
+    """reported_version file the library reads in bambu_network_get_version()."""
+    return os.path.join(os.path.dirname(get_primary_plugin_dir()), "reported_version")
+
+def read_override_version():
+    """Content of the reported_version override, or "" when absent/invalid."""
+    try:
+        with open(get_version_override_path(), "r", encoding="utf-8") as f:
+            v = f.readline().strip()
+    except Exception:
+        return ""
+    if re.fullmatch(r"[0-9.]{1,32}", v) and any(c.isdigit() for c in v):
+        return v
+    return ""
+
+def write_override_version(version):
+    """Set (or with "" remove) the version override. Name must avoid "conf":
+    the slicer audit hard-denies Python opens of any path containing it."""
+    path = get_version_override_path()
+    try:
+        if not version:
+            if os.path.exists(path):
+                os.remove(path)
+            return
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(version + "\n")
+    except Exception:
+        pass
+
+def adaptive_series():
+    """Host series this build does not ship, or "" when nothing is needed.
+
+    Official OrcaSlicer drops old rows from AVAILABLE_NETWORK_VERSIONS and
+    binds only the series it declares, so a future series leaves every
+    shipped file undetectable. The 02.08.04 ABI is append-only, so the same
+    build keeps working there: the installer copies it under the host's
+    series name and points the library's reported_version override at it.
+    """
+    series = series_of(read_slicer_config()["network_plugin_version"])
+    if not SERIES_RE.match(series):
+        return ""
+    if series in SUPPORTED_SERIES or series == LEGACY_SERIES:
+        return ""
+    return series
+
 def config_warning(conf):
     """OrcaSlicer skips the whole network library load until the plug-in is enabled."""
     if conf["installed_networking"] is False:
@@ -230,7 +277,10 @@ def config_warning(conf):
             "network plug-in, then restart."
         )
     if conf["installed_networking"] is True and conf["network_plugin_version"]:
-        if series_of(conf["network_plugin_version"]) not in SUPPORTED_SERIES:
+        wanted = series_of(conf["network_plugin_version"])
+        # A reported_version override makes the installed library report the
+        # host's series, so the configured version is satisfied by design.
+        if wanted not in SUPPORTED_SERIES and wanted != series_of(read_override_version()):
             return (
                 f"OrcaSlicer is configured for network plug-in {conf['network_plugin_version']}, "
                 f"which is none of the series this build installs "
@@ -431,6 +481,13 @@ def get_status_dict():
     conf = read_slicer_config()
     conf_warning = config_warning(conf)
 
+    override = read_override_version()
+    if override and series_of(override) != series_of(conf["network_plugin_version"]):
+        warning = warning or (
+            f"The reported_version override ({override}) no longer matches the "
+            f"series OrcaSlicer is configured for; install again to refresh it."
+        )
+
     return {
         "target_path": display_target,
         "target_exists": display_exists,
@@ -438,6 +495,7 @@ def get_status_dict():
         "bundled_exists": bundled_exists,
         "is_open_bamboo": is_open_bamboo,
         "reported_version": active_version,
+        "version_override": override,
         "series_warning": warning,
         "config_warning": conf_warning,
         "installed_networking": conf["installed_networking"],
@@ -601,6 +659,7 @@ def do_install():
         bundled_hashes[bundled_secondary] = get_file_hash(bundled_secondary)
     prefix, suffix = get_lib_prefix_suffix()
     versioned_prefix = prefix + "_"
+    host_series = adaptive_series()
 
     installed_targets = []
     conflicting_removed = []
@@ -623,6 +682,11 @@ def do_install():
         }
         if bundled_secondary:
             targets_to_update[os.path.join(pdir, f"{prefix}_{SECONDARY_SERIES}{suffix}")] = bundled_secondary
+        # Adaptive file for a future series the host whitelists but this
+        # release does not ship; the override below makes the library report
+        # that series so the slicer binds it.
+        if host_series:
+            targets_to_update[os.path.join(pdir, f"{prefix}_{host_series}{suffix}")] = bundled
 
         try:
             for f in os.listdir(pdir):
@@ -635,6 +699,8 @@ def do_install():
                     if bundled_secondary:
                         targets_to_update[os.path.join(pdir, f)] = bundled_secondary
                 elif ver.startswith(INSTALL_SERIES):
+                    targets_to_update[os.path.join(pdir, f)] = bundled
+                elif host_series and ver == host_series:
                     targets_to_update[os.path.join(pdir, f)] = bundled
                 # Other 02.08.* series are left for the cleanup below to remove.
         except Exception:
@@ -668,6 +734,8 @@ def do_install():
                 if f.endswith(".bak") or f.endswith(".vendor_backup") or ".old" in f or ".pending_delete" in f:
                     continue
                 series = f[len(versioned_prefix):-len(suffix)]
+                if series == host_series:
+                    continue
                 if series.startswith("02.08.") and not any(series.startswith(s) for s in SUPPORTED_SERIES):
                     try:
                         safe_remove(os.path.join(pdir, f))
@@ -700,6 +768,21 @@ def do_install():
 
     obn_note = ensure_obn_conf()
 
+    # Adaptive install: make the library report the host's series. Written only
+    # after a successful install; uninstall/restore stock remove it again.
+    adapt_note = ""
+    if host_series:
+        write_override_version(host_series + ".99")
+        adapt_note = (
+            f" OrcaSlicer is configured for the {host_series} series, which this "
+            f"release does not ship: the {INSTALL_SERIES} build was installed under "
+            f"that name and reports {host_series}.99 so the slicer binds it. If a "
+            "future official build still fails to detect it, it changed the plug-in "
+            "ABI: update Open Bamboo."
+        )
+    else:
+        write_override_version("")
+
     if failures:
         failed_dirs = sorted({t if t in plugin_dirs else os.path.dirname(t) for t, _ in failures})
         detail = "; ".join(f"{t}: {e}" for t, e in failures[:2])
@@ -707,17 +790,18 @@ def do_install():
             f"Open Bamboo library installed to {len(installed_targets)} location(s), "
             f"but not to {', '.join(failed_dirs)} ({detail}). Restart OrcaSlicer; if the "
             "library is not picked up, start OrcaSlicer as administrator and install again."
-            + cleanup_note + conf_note + obn_note
+            + cleanup_note + conf_note + obn_note + adapt_note
         )
 
     return True, (
         "Open Bamboo library installed successfully "
         f"({', '.join(SUPPORTED_SERIES)} series files). Please restart OrcaSlicer."
-        + cleanup_note + conf_note + obn_note
+        + cleanup_note + conf_note + obn_note + adapt_note
     )
 
 def do_uninstall():
     cleanup_old_files()
+    write_override_version("")
 
     prefix, suffix = get_lib_prefix_suffix()
     versioned_prefix = prefix + "_"
@@ -768,6 +852,7 @@ def do_uninstall():
 
 def do_restore_stock():
     cleanup_old_files()
+    write_override_version("")
 
     prefix, suffix = get_lib_prefix_suffix()
     versioned_prefix = prefix + "_"

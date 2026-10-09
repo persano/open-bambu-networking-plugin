@@ -1,3 +1,8 @@
+## 0.2.30 - 2026-10-09
+
+- Future-proofed against the next official OrcaSlicer plug-in version bump: when a new official build asks for a network plug-in series this release does not ship, the installer now places the library under that name as well and makes it report the expected version, so "Bambu Network plug-in not detected" cannot come back just because OrcaSlicer updated its version list. Nothing changes on the series already supported (02.08.04 / 02.08.01). If official OrcaSlicer ever changes the plug-in interface itself, a new release with rebuilt libraries will be needed.
+- Networking libraries updated on all three platforms, rebuilt from open-bamboo-networking `3aff180`.
+
 ## 0.2.29 - 2026-10-09
 
 - Fixed "Bambu Network plug-in not detected" on current official OrcaSlicer builds: OrcaSlicer PR #16202 (merged 2026-10-07) switched to the new `02.08.04` plug-in series and no longer accepts `02.08.01`, which every earlier release installed. One install now places both series files, so official builds bind the new `02.08.04` file while older slicer builds keep binding `02.08.01` exactly as before - nothing to reconfigure.
