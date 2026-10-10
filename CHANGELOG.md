@@ -2,6 +2,11 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.31 - 2026-10-10
+
+- Merged open-bamboo-networking master (`d8d8561`, `b974e97`, `293ce94`) into the fork: LAN print reconnect hang fix (upstream #120), cancel honored during the post-upload MQTT reconnect in `local_print`, and the new `auth_probe` action for the plugin runner. Full suite green on the merge commit (35/35 on Linux).
+- Libraries rebuilt from open-bamboo-networking `a73efa8` (the merge commit) on all three platforms, still at `02.08.04.99` / `02.08.01.99`.
+
 ## 0.2.30 - 2026-10-09
 
 - Adaptive install for future plug-in series. Official OrcaSlicer drops old rows from `AVAILABLE_NETWORK_VERSIONS`, so the next PR that adds a series (the `02.08.04` one in #16202 was the first) would again leave every shipped file undetectable. When `OrcaSlicer.conf` asks for a series this release does not ship, the installer now also writes `bambu_networking_<host_series>.*` from the `02.08.04` build and a one-line `reported_version` file next to `obn.conf`; the library's `bambu_network_get_version()` reads that file and answers with the host's series, so the slicer binds the file. The override is removed again when the configured series is one of the shipped ones, on uninstall and on restore stock, and the status page shows it. If a future official build changes the plug-in ABI instead of only the version row (struct field order, removed export), the same-day rebuild still comes from the upstream watch workflow below.
