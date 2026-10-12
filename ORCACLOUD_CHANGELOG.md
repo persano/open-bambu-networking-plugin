@@ -1,3 +1,9 @@
+## 0.2.33 - 2026-10-12
+
+- Fixed HTTP 403 on the remote camera request and, when the proof-of-possession headers are attached, on cloud print registration, on macOS and Linux, with nothing to configure. The plugin now reads the platform from the signing certificate it actually holds and reports that, instead of the host operating system. The certificate the bundled library fetches is the Windows one on every operating system, so macOS and Linux clients used to present a Windows certificate next to their own platform header, and Bambu's cloud rejects that combination.
+- The `cloud_os_type` key from 0.2.32 stays as an override. It only matters now if you placed your own certificate by hand.
+- Networking libraries updated on all three platforms, rebuilt from open-bamboo-networking `da9d91f`.
+
 ## 0.2.32 - 2026-10-12
 
 - New optional `cloud_os_type` key in `obn.conf` (`windows`, `linux` or `macos`). It fixes HTTP 403 on the remote camera request and, when the proof-of-possession headers are attached, on cloud print registration, on macOS and Linux: the bundled library requests the Windows signing certificate on every operating system while the request header reported your host system, and Bambu's cloud rejects that combination. Leave the key empty to keep the current behavior, Windows hosts are unaffected either way. After changing it, restart the slicer and upload the print again, the identity has to stay the same from upload through dispatch. LAN connections do not use it. Contribution from prateek, merged upstream as `a7ba1a3`.

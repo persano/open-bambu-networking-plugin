@@ -2,6 +2,11 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.33 - 2026-10-12
+
+- The platform identity is now automatic. When `obn.conf` carries no `cloud_os_type`, `bbl_headers()` reads the platform from the signing leaf itself (`platform_for_leaf_pem()`, windows for the `-eed1e0410000` leaf, linux for `-836763c70000`) and only reaches for the host OS when there is no certificate at all. Our embedded `client_auth_secret` is the Windows one, so `bambu_network_update_cert` fetches the Windows leaf on every OS, which means macOS and Linux clients now present `windows` on their own: the header that answered HTTP 403 on the ttcode mint and, with PoP attached, on `/my/task`. A hand placed linux chain keeps reporting linux, and an explicit `cloud_os_type` still beats both. From open-bamboo-networking `da9d91f`. New `test_platform_for_leaf_pem` (leaf mapping, unknown identity, two block chain) plus a planted `slicer_cert.pem` case in `test_cloud_platform_headers`; 33/33 green on the macOS CI run of that commit, and the same suite passes on a local Windows build.
+- Libraries rebuilt from open-bamboo-networking `da9d91f` on all three platforms, still at `02.08.04.99` / `02.08.01.99`.
+
 ## 0.2.32 - 2026-10-12
 
 - New opt-in `cloud_os_type` key in `obn.conf` (`windows` / `linux` / `macos`, case insensitive; absent, empty or unrecognized keeps the host OS). It sets `X-BBL-OS-Type` and `X-BBL-Agent-OS-Type` on every cloud REST call, so a client whose signing leaf belongs to another platform presents one consistent identity. The `client_auth_secret` embedded in `src/appcert_cipher.cpp` is the Windows one on every OS, so `bambu_network_update_cert` fetches the Windows leaf everywhere; on macOS and Linux that combination answered HTTP 403 on `POST /v1/iot-service/api/user/ttcode` (camera mint, verified through a loopback proxy: `macos` 403, `windows` 200) and on `POST /v1/user-service/my/task` whenever `mytask_pop` attached the proof-of-possession pair. `os_type()` and the LAN path are untouched, so Windows hosts and everything else keep their old behavior. From persano/open-bamboo-networking PR #5 (prateek), merged `a7ba1a3`; OrcaSlicer fork submodule bumped in `262a88953`.
