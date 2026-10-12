@@ -4,23 +4,6 @@ on:
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      version_override:
-        description: 'Version to publish instead of the ref name'
-        required: false
-        default: ''
-      tag_override:
-        description: 'Git tag whose wheels to publish, empty means the dispatched ref'
-        required: false
-        default: ''
-      changelog_override:
-        description: '"repo" reads the ORCACLOUD_CHANGELOG.md section for the version'
-        required: false
-        default: ''
-      override_flag:
-        description: 'Metadata flag to add, e.g. force, needed to republish a version that already shipped'
-        required: false
-        default: ''
 
 permissions:
   id-token: write
@@ -35,8 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.tag_override || github.ref }}
 
       - name: Publish release to OrcaCloud
         run: |
@@ -44,25 +25,16 @@ jobs:
           oidc_token="$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=orcacloud" | jq -r .value)"
           version="${GITHUB_REF_NAME#v}"
-          if [ -n "${{ inputs.version_override }}" ]; then
-            version="${{ inputs.version_override }}"
-          fi
           if [ -z "$version" ] || [ "$version" = "main" ]; then
             version="0.2.8"
           fi
           changelog="$(jq -r '.release.body // ""' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")"
-          if [ -z "$changelog" ] && [ "${{ inputs.changelog_override }}" = "repo" ]; then
-            changelog="$(awk -v pat="## $version " '$0 ~ "^"pat {p=1; next} /^## / {p=0} p {print}' \
-              ORCACLOUD_CHANGELOG.md)"
-          fi
           if [ -z "$changelog" ]; then
             changelog="Automated release from GitHub"
           fi
           changelog="$(echo "$changelog" | head -c 4000)"
           metadata="$(jq -cn --arg version "$version" --arg changelog "$changelog" \
-            --arg flag "${{ inputs.override_flag }}" \
-            '{version: $version} + (if $changelog == "" then {} else {changelog: $changelog} end)
-              + (if $flag == "" then {} else {($flag): true} end)')"
+            '{version: $version} + (if $changelog == "" then {} else {changelog: $changelog} end)')"
           # --form-string, not -F: -F parses ';' / '<' / '@' inside the value
           # as form attributes and silently truncates the JSON (0.2.22 publish
           # failed with "Metadata must be valid JSON" when the changelog
