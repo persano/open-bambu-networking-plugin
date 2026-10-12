@@ -21,7 +21,11 @@ on:
         required: false
         default: ''
       version:
-        description: 'Version whose ORCACLOUD_CHANGELOG.md section becomes the changelog (patch mode)'
+        description: 'Version whose ORCACLOUD_CHANGELOG.md section becomes the changelog (patch and repost mode)'
+        required: false
+        default: ''
+      tag:
+        description: 'Git tag whose wheels to publish (repost mode)'
         required: false
         default: ''
 
@@ -71,6 +75,42 @@ jobs:
           echo
           echo "status=$status"
           [ "$status" = "200" ]
+
+      - name: Check out the release tag wheels
+        if: inputs.mode == 'repost'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Repost the version with an override flag
+        # The publish endpoint rejects an equal or older version outright, so
+        # this tries the plausible override flags one by one and stops at the
+        # first 201. Every attempt prints the server answer.
+        if: inputs.mode == 'repost'
+        run: |
+          set -euo pipefail
+          test -n "${{ inputs.version }}"
+          test -n "${{ inputs.tag }}"
+          awk -v pat="## ${{ inputs.version }} " '$0 ~ "^"pat {p=1; next} /^## / {p=0} p {print}' \
+            ORCACLOUD_CHANGELOG.md > changelog.md
+          test -s changelog.md
+          args=()
+          for file in *.whl; do args+=(-F "files=@$file"); done
+          for flag in force update allow_same replace overwrite republish; do
+            metadata="$(jq -n --arg version "${{ inputs.version }}" --rawfile changelog changelog.md \
+              --arg flag "$flag" '{version: $version, changelog: $changelog} + {($flag): true}')"
+            status="$(curl -sS -o response.json -w '%{http_code}' \
+              -H "Authorization: Bearer $OIDC_TOKEN" --form-string "metadata=$metadata" \
+              "${args[@]}" https://api.orcaslicer.com/api/v1/plugin-publish/releases)"
+            echo "flag=$flag status=$status"
+            head -c 300 response.json; echo
+            if [ "$status" = "201" ]; then
+              jq -r '"published version=" + .version + " changelog_len=" + (.changelog | length | tostring)' response.json
+              exit 0
+            fi
+          done
+          echo "no override flag was accepted"
+          exit 1
 
       - name: Delete release
         if: inputs.mode == 'delete'
