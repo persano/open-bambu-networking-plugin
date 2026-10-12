@@ -1,0 +1,85 @@
+name: OrcaCloud maintenance
+
+# One off maintenance for the OrcaCloud plugin entry. The publish workflow
+# only appends greater versions (the API answers VALIDATION_ERROR for an
+# equal or older one), so repairing the changelog of a version that already
+# shipped needs a direct call against the release id:
+#   probe  -> list the plugin's releases with their OrcaCloud ids
+#   patch  -> set the changelog of one release id, using the
+#             ORCACLOUD_CHANGELOG.md section for the given version
+#   delete -> drop one release id, so the version can be published again
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe | patch | delete'
+        required: true
+        default: 'probe'
+      release_id:
+        description: 'OrcaCloud release id, required for patch and delete'
+        required: false
+        default: ''
+      version:
+        description: 'Version whose ORCACLOUD_CHANGELOG.md section becomes the changelog (patch mode)'
+        required: false
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mint OIDC token
+        run: |
+          set -euo pipefail
+          oidc_token="$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=orcacloud" | jq -r .value)"
+          echo "OIDC_TOKEN=$oidc_token" >> "$GITHUB_ENV"
+
+      - name: Probe releases
+        if: inputs.mode == 'probe'
+        run: |
+          set -euo pipefail
+          curl -sS -H "Authorization: Bearer $OIDC_TOKEN" \
+            https://api.orcaslicer.com/api/v1/plugin-publish/releases | tee response.json
+          echo
+          jq -r 'if type == "array" then .[] else .releases[]? end |
+                 [(.id // "no-id"), (.version // "?"), (.changelog // "" | length | tostring)] | @tsv' \
+            response.json || true
+
+      - name: Patch changelog
+        if: inputs.mode == 'patch'
+        run: |
+          set -euo pipefail
+          test -n "${{ inputs.release_id }}"
+          test -n "${{ inputs.version }}"
+          awk -v pat="## ${{ inputs.version }} " '$0 ~ "^"pat {p=1; next} /^## / {p=0} p {print}' \
+            ORCACLOUD_CHANGELOG.md > changelog.md
+          test -s changelog.md
+          payload="$(jq -n --rawfile changelog changelog.md '{changelog: $changelog}')"
+          status="$(curl -sS -o response.json -w '%{http_code}' -X PATCH \
+            -H "Authorization: Bearer $OIDC_TOKEN" -H "Content-Type: application/json" \
+            --data "$payload" \
+            "https://api.orcaslicer.com/api/v1/plugin-publish/releases/${{ inputs.release_id }}")"
+          cat response.json
+          echo
+          echo "status=$status"
+          [ "$status" = "200" ]
+
+      - name: Delete release
+        if: inputs.mode == 'delete'
+        run: |
+          set -euo pipefail
+          test -n "${{ inputs.release_id }}"
+          status="$(curl -sS -o response.json -w '%{http_code}' -X DELETE \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            "https://api.orcaslicer.com/api/v1/plugin-publish/releases/${{ inputs.release_id }}")"
+          cat response.json
+          echo
+          echo "status=$status"
