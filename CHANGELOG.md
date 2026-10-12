@@ -2,6 +2,11 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.32 - 2026-10-12
+
+- New opt-in `cloud_os_type` key in `obn.conf` (`windows` / `linux` / `macos`, case insensitive; absent, empty or unrecognized keeps the host OS). It sets `X-BBL-OS-Type` and `X-BBL-Agent-OS-Type` on every cloud REST call, so a client whose signing leaf belongs to another platform presents one consistent identity. The `client_auth_secret` embedded in `src/appcert_cipher.cpp` is the Windows one on every OS, so `bambu_network_update_cert` fetches the Windows leaf everywhere; on macOS and Linux that combination answered HTTP 403 on `POST /v1/iot-service/api/user/ttcode` (camera mint, verified through a loopback proxy: `macos` 403, `windows` 200) and on `POST /v1/user-service/my/task` whenever `mytask_pop` attached the proof-of-possession pair. `os_type()` and the LAN path are untouched, so Windows hosts and everything else keep their old behavior. From persano/open-bamboo-networking PR #5 (prateek), merged `a7ba1a3`; OrcaSlicer fork submodule bumped in `262a88953`.
+- Libraries rebuilt from open-bamboo-networking `a7ba1a3` on all three platforms, still at `02.08.04.99` / `02.08.01.99`. The new `test_cloud_platform_headers` case (seven platform, normalization and fallback rows, asserted through `bbl_headers`) sits in the `if(OBN_BUILD_TESTS AND NOT WIN32)` block, so it is CI only; verified locally on Windows by temporarily opening that block, all rows pass, and reverting the temporary change leaves the tree untouched.
+
 ## 0.2.31 - 2026-10-10
 
 - Merged open-bamboo-networking master (`d8d8561`, `b974e97`, `293ce94`) into the fork: LAN print reconnect hang fix (upstream #120), cancel honored during the post-upload MQTT reconnect in `local_print`, and the new `auth_probe` action for the plugin runner. Full suite green on the merge commit (35/35 on Linux).
