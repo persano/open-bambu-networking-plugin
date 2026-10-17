@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.34"
+# version = "0.2.35"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -700,6 +700,52 @@ def ensure_log_to_file():
         return _LOG_MANUAL_NOTE
     return " Enabled diagnostic file logging (obn.log next to obn.conf)."
 
+_CLIENT_NAME_MANUAL_NOTE = (
+    " Could not update client_name in obn.conf (the slicer blocked the write); "
+    "set 'client_name = BambuStudio' there yourself or cloud print keeps "
+    "answering HTTP 403."
+)
+
+def ensure_client_name():
+    """Rewrite the pre-0.2.28 template `client_name = OpenBambooNetworking`.
+
+    `POST /v1/user-service/my/task` (cloud print) answers HTTP 403 for any
+    client name other than the stock `BambuStudio`, so a config created by an
+    old installer accepts no print at all while everything else works, with
+    only `create_task X-BBL-Client-Name=OpenBambooNetworking` in obn.log
+    (issue #4, A1 mini on the CN cloud). Only that shipped value is rewritten;
+    any other value the user picked is left alone, and an absent key already
+    means the library default (BambuStudio).
+
+    Returns a note for the install message, or "" when nothing changed.
+    """
+    conf_path = os.path.join(os.path.dirname(get_primary_plugin_dir()), "obn.conf")
+    key_re = re.compile(r"^(\s*client_name\s*=\s*)([^\s#]+)")
+    try:
+        with open(conf_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+    except Exception:
+        return ""
+
+    changed = False
+    for i, line in enumerate(lines):
+        m = key_re.match(line)
+        if not m:
+            continue
+        if m.group(2).strip('"').lower() == "openbamboonetworking":
+            lines[i] = m.group(1) + "BambuStudio" + line[m.end():]
+            changed = True
+        break
+
+    if not changed:
+        return ""
+    try:
+        with open(conf_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+    except Exception:
+        return _CLIENT_NAME_MANUAL_NOTE
+    return " Set client_name = BambuStudio in obn.conf (any other value gets HTTP 403 from cloud print)."
+
 def do_install():
     cleanup_old_files()
 
@@ -826,6 +872,7 @@ def do_install():
 
     obn_note = ensure_obn_conf()
     log_note = ensure_log_to_file()
+    client_note = ensure_client_name()
 
     # Adaptive install: make the library report the host's series. Written only
     # after a successful install; uninstall/restore stock remove it again.
@@ -849,13 +896,13 @@ def do_install():
             f"Open Bamboo library installed to {len(installed_targets)} location(s), "
             f"but not to {', '.join(failed_dirs)} ({detail}). Restart OrcaSlicer; if the "
             "library is not picked up, start OrcaSlicer as administrator and install again."
-            + cleanup_note + conf_note + obn_note + log_note + adapt_note
+            + cleanup_note + conf_note + obn_note + log_note + client_note + adapt_note
         )
 
     return True, (
         "Open Bamboo library installed successfully "
         f"({', '.join(SUPPORTED_SERIES)} series files). Please restart OrcaSlicer."
-        + cleanup_note + conf_note + obn_note + log_note + adapt_note
+        + cleanup_note + conf_note + obn_note + log_note + client_note + adapt_note
     )
 
 def do_uninstall():

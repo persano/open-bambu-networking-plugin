@@ -2,6 +2,10 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.35 - 2026-10-17
+
+- Fixed "a1mini can't print" (issue #4): an `obn.conf` created by an installer older than 0.2.28 carries `client_name = OpenBambooNetworking`, and `POST /v1/user-service/my/task` answers HTTP 403 `The client does not have access rights to the content.` for any client name that is not the stock `BambuStudio`. The reporter's `obn.log` shows both the warning (`create_task X-BBL-Client-Name=OpenBambooNetworking is not BambuStudio`) and the 403, while control, status and camera all keep working. The installer now rewrites that one stale value to `BambuStudio`, leaving any other `client_name` the user picked untouched; if the slicer's audit blocks the write, the install message asks for the one-line edit instead.
+
 ## 0.2.34 - 2026-10-16
 
 - Fixed the Copy Path button doing nothing (user report: A1 mini, Orca 2.5.0-dev). The page loaded with an empty path until a status refresh, and in that state `copyPath()` returned silently; `navigator.clipboard` is also missing in some webview contexts, and `writeText` can reject. The status page now ships the active library path at load, the button refreshes status when the path is still empty, clipboard failures fall back to showing the path in the alert, and every outcome gives visible feedback instead of a silent no-op.

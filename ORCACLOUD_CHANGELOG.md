@@ -1,3 +1,7 @@
+## 0.2.35 - 2026-10-17
+
+- Fixed cloud print failing silently with HTTP 403 (`The client does not have access rights to the content.`) on installs whose `obn.conf` came from a pre-0.2.28 plugin. Those configs still contain `client_name = OpenBambooNetworking`, which Bambu's cloud rejects on the print endpoint while every other call works, so the printer receives nothing and no error reaches the slicer. The installer now rewrites that stale line to `client_name = BambuStudio`. Update, then press Install / Update Open Bamboo Library once and restart.
+
 ## 0.2.34 - 2026-10-16
 
 - Fixed the Copy Path button on the plugin tab doing nothing. It is clickable right away now, refreshes the status itself if the path was not loaded yet, and always shows you the path even when the clipboard is unavailable.
