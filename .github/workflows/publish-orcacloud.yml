@@ -64,6 +64,23 @@ jobs:
           cat delete_response.json
           echo
           echo "delete status=$status for $replace_id"
+          if [ "$status" = "200" ] || [ "$status" = "204" ] || [ "$status" = "404" ]; then
+            exit 0
+          fi
+          # DELETE refuses OIDC tokens ("invalid_token"), so try moving the
+          # old release out of the version slot with PATCH instead; a 409
+          # CONFLICT from the publish below confirms this failed too.
+          version="${{ inputs.version }}"
+          if [ -z "$version" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          pstatus="$(curl -sS -o patch_response.json -w '%{http_code}' -X PATCH \
+            -H "Authorization: Bearer $oidc_token" -H "Content-Type: application/json" \
+            --data "{\"version\":\"$version-held\"}" \
+            "https://api.orcaslicer.com/api/v1/plugin-publish/releases/$replace_id")"
+          cat patch_response.json
+          echo
+          echo "patch status=$pstatus (moved $version -> $version-held)"
 
       - name: Publish release to OrcaCloud
         run: |
