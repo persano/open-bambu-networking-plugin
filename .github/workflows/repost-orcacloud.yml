@@ -1,0 +1,86 @@
+name: Repost OrcaCloud release
+
+# The publish endpoint rejects an equal or older version, so replacing a
+# version that OrcaCloud already knows (typically one held_for_review) needs
+# the old release id deleted first. This deletes it and publishes the wheels
+# of the given tag in one run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.2.34)'
+        required: true
+      tag:
+        description: 'Git tag whose wheels to publish (e.g. v0.2.34)'
+        required: true
+      release_id:
+        description: 'OrcaCloud release id to delete first (from the publish log)'
+        required: false
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  repost:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Mint OIDC token
+        run: |
+          set -euo pipefail
+          oidc_token="$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=orcacloud" | jq -r .value)"
+          echo "OIDC_TOKEN=$oidc_token" >> "$GITHUB_ENV"
+
+      - name: Delete the old release
+        if: inputs.release_id != ''
+        run: |
+          set -euo pipefail
+          status="$(curl -sS -o delete_response.json -w '%{http_code}' -X DELETE \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            "https://api.orcaslicer.com/api/v1/plugin-publish/releases/${{ inputs.release_id }}")"
+          cat delete_response.json
+          echo
+          echo "delete status=$status"
+          [ "$status" = "200" ] || [ "$status" = "204" ] || [ "$status" = "404" ]
+
+      - name: Publish the version
+        run: |
+          set -euo pipefail
+          awk -v pat="## ${{ inputs.version }} " '$0 ~ "^"pat {p=1; next} /^## / {p=0} p {print}' \
+            ORCACLOUD_CHANGELOG.md > changelog.md
+          test -s changelog.md
+          changelog="$(head -c 4000 changelog.md)"
+          metadata="$(jq -cn --arg version "${{ inputs.version }}" --arg changelog "$changelog" \
+            '{version: $version} + (if $changelog == "" then {} else {changelog: $changelog} end)')"
+          args=(--form-string "metadata=$metadata")
+          shopt -s nullglob
+          for file in *.whl; do
+            args+=(-F "files=@$file")
+          done
+          if [ "${#args[@]}" -eq 1 ]; then
+            echo "No *.whl files in the tag checkout" >&2
+            exit 1
+          fi
+          status="$(curl -sS -o response.json -w '%{http_code}' \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            "${args[@]}" \
+            https://api.orcaslicer.com/api/v1/plugin-publish/releases)"
+          cat response.json
+          echo
+          # 201 = clean publish, 202/200 = accepted and held for review; both
+          # mean the upload landed, only the second waits for a moderator.
+          if [ "$status" != "200" ] && [ "$status" != "201" ] && [ "$status" != "202" ]; then
+            echo "Publish failed with HTTP $status" >&2
+            exit 1
+          fi
+          scan_status="$(jq -r '.status // "unknown"' response.json 2>/dev/null || echo unknown)"
+          if [ "$scan_status" = "held_for_review" ]; then
+            echo "::warning::OrcaCloud holds v${{ inputs.version }} for review: $(jq -r '.scan_summary // ""' response.json)"
+          fi
