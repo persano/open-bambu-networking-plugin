@@ -2,6 +2,11 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.34 - 2026-10-16
+
+- Fixed the Copy Path button doing nothing (user report: A1 mini, Orca 2.5.0-dev). The page loaded with an empty path until a status refresh, and in that state `copyPath()` returned silently; `navigator.clipboard` is also missing in some webview contexts, and `writeText` can reject. The status page now ships the active library path at load, the button refreshes status when the path is still empty, clipboard failures fall back to showing the path in the alert, and every outcome gives visible feedback instead of a silent no-op.
+- The installer now defaults `obn.conf` to `log_to_file = 1` when the key is absent, so `obn.log` (same folder as `obn.conf`) exists out of the box for bug reports. Without it the native library logs to stderr only, which OrcaSlicer drops, which is why the "print sent but the printer never starts" reports (P1P, A1 mini, Orca 2.5.0-dev) arrived with no logs to diagnose. An explicit `log_to_file` line (including `= 0`) is kept untouched; on slicer builds whose plugin audit denies the `obn.conf` write the install message asks for the one-line manual edit instead. The status page also shows the `obn.log` path and whether the file exists yet.
+
 ## 0.2.33 - 2026-10-12
 
 - The platform identity is now automatic. When `obn.conf` carries no `cloud_os_type`, `bbl_headers()` reads the platform from the signing leaf itself (`platform_for_leaf_pem()`, windows for the `-eed1e0410000` leaf, linux for `-836763c70000`) and only reaches for the host OS when there is no certificate at all. Our embedded `client_auth_secret` is the Windows one, so `bambu_network_update_cert` fetches the Windows leaf on every OS, which means macOS and Linux clients now present `windows` on their own: the header that answered HTTP 403 on the ttcode mint and, with PoP attached, on `/my/task`. A hand placed linux chain keeps reporting linux, and an explicit `cloud_os_type` still beats both. From open-bamboo-networking `da9d91f`. New `test_platform_for_leaf_pem` (leaf mapping, unknown identity, two block chain) plus a planted `slicer_cert.pem` case in `test_cloud_platform_headers`; 33/33 green on the macOS CI run of that commit, and the same suite passes on a local Windows build.

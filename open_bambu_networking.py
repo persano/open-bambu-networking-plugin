@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.33"
+# version = "0.2.34"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -492,6 +492,8 @@ def get_status_dict():
         "target_path": display_target,
         "target_exists": display_exists,
         "backup_exists": backup_exists,
+        "log_path": get_log_file_path(),
+        "log_exists": os.path.exists(get_log_file_path()),
         "bundled_exists": bundled_exists,
         "is_open_bamboo": is_open_bamboo,
         "reported_version": active_version,
@@ -642,6 +644,62 @@ def ensure_obn_conf():
         return " Added block_cloud = 0 to obn.conf (enables Bambu Cloud)."
     return ""
 
+def get_log_file_path():
+    """Where the native library writes obn.log (same folder as obn.conf)."""
+    return os.path.join(os.path.dirname(get_primary_plugin_dir()), "obn.log")
+
+_LOG_MANUAL_NOTE = (
+    " Could not enable file logging automatically (the slicer blocked the obn.conf "
+    "write); add 'log_to_file = 1' to obn.conf and restart OrcaSlicer so obn.log "
+    "captures diagnostics."
+)
+
+def ensure_log_to_file():
+    """Default obn.conf to `log_to_file = 1` so obn.log exists for bug reports.
+
+    Without it the native library logs to stderr only, which OrcaSlicer drops,
+    and users have no obn.log to attach, so reports like "print sent but the
+    printer never starts" arrive with nothing to diagnose. Only the missing key
+    is added; an explicit user value (including log_to_file = 0) is kept. The
+    write is a plain Python open, which OrcaSlicer's plugin audit may deny on
+    builds that do not exempt obn.conf; the caller then gets the manual-step
+    note instead.
+
+    Returns a note for the install message, or "" when nothing changed.
+    """
+    conf_path = os.path.join(os.path.dirname(get_primary_plugin_dir()), "obn.conf")
+    key_re = re.compile(r"^\s*log_to_file\s*=")
+    header = (
+        "# Open Bamboo Networking configuration\n"
+        "# Written by the Open Bamboo plugin installer. Add your own\n"
+        "# keys below (log_to_file, log_level, ...); see the README.\n"
+        "\n"
+    )
+    try:
+        if not os.path.exists(conf_path):
+            with open(conf_path, "w", encoding="utf-8") as f:
+                f.write(header + "log_to_file = 1\n")
+            return " Enabled diagnostic file logging (obn.log next to obn.conf)."
+        with open(conf_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+    except Exception:
+        return _LOG_MANUAL_NOTE
+
+    if any(key_re.match(l) for l in lines):
+        return ""
+
+    if lines and not lines[-1].endswith("\n"):
+        lines[-1] += "\n"
+    if lines and lines[-1].strip():
+        lines.append("\n")
+    lines.append("log_to_file = 1\n")
+    try:
+        with open(conf_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+    except Exception:
+        return _LOG_MANUAL_NOTE
+    return " Enabled diagnostic file logging (obn.log next to obn.conf)."
+
 def do_install():
     cleanup_old_files()
 
@@ -767,6 +825,7 @@ def do_install():
         )
 
     obn_note = ensure_obn_conf()
+    log_note = ensure_log_to_file()
 
     # Adaptive install: make the library report the host's series. Written only
     # after a successful install; uninstall/restore stock remove it again.
@@ -790,13 +849,13 @@ def do_install():
             f"Open Bamboo library installed to {len(installed_targets)} location(s), "
             f"but not to {', '.join(failed_dirs)} ({detail}). Restart OrcaSlicer; if the "
             "library is not picked up, start OrcaSlicer as administrator and install again."
-            + cleanup_note + conf_note + obn_note + adapt_note
+            + cleanup_note + conf_note + obn_note + log_note + adapt_note
         )
 
     return True, (
         "Open Bamboo library installed successfully "
         f"({', '.join(SUPPORTED_SERIES)} series files). Please restart OrcaSlicer."
-        + cleanup_note + conf_note + obn_note + adapt_note
+        + cleanup_note + conf_note + obn_note + log_note + adapt_note
     )
 
 def do_uninstall():
@@ -998,9 +1057,11 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
 
     def get_ui(self):
         default_status = {
-            "target_path": "",
+            "target_path": get_active_target_path(),
             "target_exists": False,
             "backup_exists": True,
+            "log_path": get_log_file_path(),
+            "log_exists": os.path.exists(get_log_file_path()),
             "bundled_exists": False,
             "is_open_bamboo": False,
             "reported_version": "",
@@ -1307,6 +1368,9 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
       <div class="meta-key">Active Path:</div>
       <div id="targetPath" class="meta-val">-</div>
 
+      <div class="meta-key">Log File:</div>
+      <div id="logPath" class="meta-val">-</div>
+
       <div class="meta-key">File Size:</div>
       <div id="targetSize" class="meta-val">-</div>
 
@@ -1392,9 +1456,15 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
     const targetSize = document.getElementById("targetSize");
     const reportedVersion = document.getElementById("reportedVersion");
     const platformText = document.getElementById("platformText");
+    const logPath = document.getElementById("logPath");
 
     currentTargetPath = s.target_path || "";
     targetPath.textContent = currentTargetPath || "-";
+    if (logPath) {{
+      logPath.textContent = s.log_path
+        ? s.log_path + (s.log_exists ? "" : " (not created yet - send a print once after enabling logging)")
+        : "-";
+    }}
     platformText.textContent = (s.os || "") + " " + (s.arch || "");
 
     if (s.initial) {{
@@ -1482,13 +1552,25 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
   }}
 
   function copyPath() {{
-    if (currentTargetPath) {{
-      navigator.clipboard.writeText(currentTargetPath).then(() => {{
-        showAlert("Copied path to clipboard: " + currentTargetPath, true);
-      }}).catch(() => {{
-        showAlert("Path: " + currentTargetPath, true);
-      }});
+    if (!currentTargetPath) {{
+      sendAction('get_status');
+      showAlert("Path not loaded yet, refreshing status, then click Copy Path again.", true);
+      return;
     }}
+    const path = currentTargetPath;
+    function showIt() {{ showAlert("Path: " + path, true); }}
+    // navigator.clipboard is undefined in non-secure webview contexts and
+    // writeText rejects when another app holds the clipboard, so a silent
+    // no-op was possible; every failure path now surfaces the path anyway.
+    try {{
+      if (navigator.clipboard && navigator.clipboard.writeText) {{
+        navigator.clipboard.writeText(path).then(() => {{
+          showAlert("Copied path to clipboard: " + path, true);
+        }}).catch(showIt);
+        return;
+      }}
+    }} catch (e) {{}}
+    showIt();
   }}
 
   window.addEventListener("DOMContentLoaded", () => {{
