@@ -38,17 +38,27 @@ jobs:
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=orcacloud" | jq -r .value)"
           echo "OIDC_TOKEN=$oidc_token" >> "$GITHUB_ENV"
 
+      - name: Probe what the token sees
+        run: |
+          set -euo pipefail
+          curl -sS -H "Authorization: Bearer $OIDC_TOKEN" \
+            https://api.orcaslicer.com/api/v1/plugin-publish/releases > probe.json
+          jq -r 'if type == "array" then .[] else .releases[]? end |
+                 [(.id // "no-id"), (.version // "?"), (.status // "live")] | @tsv' probe.json || cat probe.json
+
       - name: Delete the old release
         if: inputs.release_id != ''
         run: |
-          set -euo pipefail
+          set -uo pipefail
           status="$(curl -sS -o delete_response.json -w '%{http_code}' -X DELETE \
             -H "Authorization: Bearer $OIDC_TOKEN" \
             "https://api.orcaslicer.com/api/v1/plugin-publish/releases/${{ inputs.release_id }}")"
           cat delete_response.json
           echo
           echo "delete status=$status"
-          [ "$status" = "200" ] || [ "$status" = "204" ] || [ "$status" = "404" ]
+          # Keep going: the publish below reports VALIDATION_ERROR when the
+          # old release is still there, which tells us the delete route needs
+          # a different credential.
 
       - name: Publish the version
         run: |
