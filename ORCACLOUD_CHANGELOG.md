@@ -1,3 +1,9 @@
+## 0.2.34 - 2026-10-16
+
+- Fixed the Copy Path button on the plugin tab doing nothing. It is clickable right away now, refreshes the status itself if the path was not loaded yet, and always shows you the path even when the clipboard is unavailable.
+- The installer now enables diagnostic file logging by default (`log_to_file = 1` in `obn.conf`), so the `obn.log` file bug reports need actually gets created. The plugin tab also shows the exact `obn.log` location. An explicit `log_to_file` line you wrote yourself is left untouched.
+- No networking library changes; the native binaries are the same as 0.2.33.
+
 ## 0.2.33 - 2026-10-12
 
 - Fixed HTTP 403 on the remote camera request and, when the proof-of-possession headers are attached, on cloud print registration, on macOS and Linux, with nothing to configure. The plugin now reads the platform from the signing certificate it actually holds and reports that, instead of the host operating system. The certificate the bundled library fetches is the Windows one on every operating system, so macOS and Linux clients used to present a Windows certificate next to their own platform header, and Bambu's cloud rejects that combination.
