@@ -4,6 +4,19 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish when dispatching (e.g. 0.2.34)'
+        required: false
+        default: ''
+      tag:
+        description: 'Tag whose wheels to publish when dispatching (e.g. v0.2.34)'
+        required: false
+        default: ''
+      release_id:
+        description: 'OrcaCloud release id to delete first (replacing a held version)'
+        required: false
+        default: ''
 
 permissions:
   id-token: write
@@ -18,17 +31,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      # OrcaCloud only accepts the OIDC token of this connected workflow, so
+      # replacing a version it already knows (held_for_review) has to happen
+      # here: the publish endpoint rejects an equal or older version.
+      - name: Delete the old OrcaCloud release
+        if: inputs.release_id != ''
+        run: |
+          set -euo pipefail
+          oidc_token="$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=orcacloud" | jq -r .value)"
+          status="$(curl -sS -o delete_response.json -w '%{http_code}' -X DELETE \
+            -H "Authorization: Bearer $oidc_token" \
+            "https://api.orcaslicer.com/api/v1/plugin-publish/releases/${{ inputs.release_id }}")"
+          cat delete_response.json
+          echo
+          echo "delete status=$status"
+          [ "$status" = "200" ] || [ "$status" = "204" ] || [ "$status" = "404" ]
 
       - name: Publish release to OrcaCloud
         run: |
           set -euo pipefail
           oidc_token="$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=orcacloud" | jq -r .value)"
-          version="${GITHUB_REF_NAME#v}"
+          version="${{ inputs.version }}"
+          if [ -z "$version" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          fi
           if [ -z "$version" ] || [ "$version" = "main" ]; then
             version="0.2.8"
           fi
           changelog="$(jq -r '.release.body // ""' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")"
+          if [ -z "$changelog" ]; then
+            # Dispatch runs carry no release body; fall back to the
+            # ORCACLOUD_CHANGELOG.md section for the version.
+            changelog="$(awk -v pat="## $version " '$0 ~ "^"pat {p=1; next} /^## / {p=0} p {print}' \
+              ORCACLOUD_CHANGELOG.md 2>/dev/null || true)"
+          fi
           if [ -z "$changelog" ]; then
             changelog="Automated release from GitHub"
           fi
