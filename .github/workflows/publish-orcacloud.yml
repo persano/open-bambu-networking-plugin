@@ -13,10 +13,13 @@ on:
         description: 'Tag whose wheels to publish when dispatching (e.g. v0.2.34)'
         required: false
         default: ''
-      release_id:
-        description: 'OrcaCloud release id to delete first (replacing a held version)'
-        required: false
-        default: ''
+
+# Probed 2026-10-17: the OIDC token only authorizes POST
+# /plugin-publish/releases, and only from this workflow on a release event
+# (a dispatch gets "UNAUTHORIZED: connected release workflow required").
+# DELETE and PATCH on a release id answer "invalid_token" even here, so a
+# version OrcaCloud already knows - including one held_for_review - can only
+# be removed from the OrcaCloud side, never from CI.
 
 permissions:
   id-token: write
@@ -33,54 +36,6 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.tag || github.ref }}
-
-      # OrcaCloud only accepts this workflow's OIDC token during a release
-      # event (a dispatch gets "invalid_token"), and its publish endpoint
-      # rejects an equal or older version, so replacing a version it already
-      # knows (held_for_review) needs the old id deleted here: the release
-      # body carries an "OrcaCloud-Replace: <id>" line, or dispatch passes it
-      # as the release_id input. A rejection is reported but does not stop
-      # the publish, whose VALIDATION_ERROR then shows whether the delete
-      # happened.
-      - name: Delete the old OrcaCloud release
-        if: inputs.release_id != '' || github.event_name == 'release'
-        run: |
-          set -uo pipefail
-          replace_id="${{ inputs.release_id }}"
-          if [ -z "$replace_id" ]; then
-            replace_id="$(jq -r '.release.body // ""' "$GITHUB_EVENT_PATH" \
-              | grep -ioE 'OrcaCloud-Replace:[[:space:]]*[0-9a-f-]+' \
-              | head -n1 | sed -E 's/.*:[[:space:]]*//I' || true)"
-          fi
-          if [ -z "$replace_id" ]; then
-            echo "No OrcaCloud-Replace marker, nothing to delete."
-            exit 0
-          fi
-          oidc_token="$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=orcacloud" | jq -r .value)"
-          status="$(curl -sS -o delete_response.json -w '%{http_code}' -X DELETE \
-            -H "Authorization: Bearer $oidc_token" \
-            "https://api.orcaslicer.com/api/v1/plugin-publish/releases/$replace_id")"
-          cat delete_response.json
-          echo
-          echo "delete status=$status for $replace_id"
-          if [ "$status" = "200" ] || [ "$status" = "204" ] || [ "$status" = "404" ]; then
-            exit 0
-          fi
-          # DELETE refuses OIDC tokens ("invalid_token"), so try moving the
-          # old release out of the version slot with PATCH instead; a 409
-          # CONFLICT from the publish below confirms this failed too.
-          version="${{ inputs.version }}"
-          if [ -z "$version" ]; then
-            version="${GITHUB_REF_NAME#v}"
-          fi
-          pstatus="$(curl -sS -o patch_response.json -w '%{http_code}' -X PATCH \
-            -H "Authorization: Bearer $oidc_token" -H "Content-Type: application/json" \
-            --data "{\"version\":\"$version-held\"}" \
-            "https://api.orcaslicer.com/api/v1/plugin-publish/releases/$replace_id")"
-          cat patch_response.json
-          echo
-          echo "patch status=$pstatus (moved $version -> $version-held)"
 
       - name: Publish release to OrcaCloud
         run: |
