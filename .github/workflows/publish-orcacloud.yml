@@ -54,4 +54,15 @@ jobs:
             https://api.orcaslicer.com/api/v1/plugin-publish/releases)"
           cat response.json
           echo
-          [ "$status" = "201" ]
+          # The scan gate answers 201 when clean and holds the release for
+          # review otherwise (status "held_for_review", e.g. this plugin's
+          # ctypes library loading); both mean the upload landed, only the
+          # second one waits for a moderator.
+          if [ "$status" != "200" ] && [ "$status" != "201" ] && [ "$status" != "202" ]; then
+            echo "Publish failed with HTTP $status" >&2
+            exit 1
+          fi
+          scan_status="$(jq -r '.status // "unknown"' response.json 2>/dev/null || echo unknown)"
+          if [ "$scan_status" = "held_for_review" ]; then
+            echo "::warning::OrcaCloud holds v$version for review: $(jq -r '.scan_summary // ""' response.json)"
+          fi
