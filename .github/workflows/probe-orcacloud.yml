@@ -22,6 +22,9 @@ jobs:
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=orcacloud" | jq -r .value)"
           curl -sS -H "Authorization: Bearer $oidc_token" \
             https://api.orcaslicer.com/api/v1/plugin-publish/releases > releases.json
+          echo "bytes: $(wc -c < releases.json)"
+          cat releases.json
+          echo
           jq -r 'if type == "array" then .[] else .releases[]? end |
                  [(.id // "no-id"), (.version // "?"), (.status // "live"),
-                  (.scan_status // "-")] | @tsv' releases.json || cat releases.json
+                  (.scan_status // "-")] | @tsv' releases.json || true
