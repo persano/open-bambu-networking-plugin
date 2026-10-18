@@ -1,3 +1,7 @@
+## 0.2.36 - 2026-10-18
+
+- Clearer installer feedback: when OrcaSlicer's plugin permission system blocks the `obn.conf` access, the install message now says so and gives the one-line manual fix, instead of the `client_name` rewrite being skipped silently while prints keep failing with HTTP 403. If the installer reports this, allow the permission prompt OrcaSlicer shows for the plugin (or set `client_name = BambuStudio` in `obn.conf` yourself), restart, and print again.
+
 ## 0.2.35 - 2026-10-17
 
 - Fixed cloud print failing silently with HTTP 403 (`The client does not have access rights to the content.`) on installs whose `obn.conf` came from a pre-0.2.28 plugin. Those configs still contain `client_name = OpenBambooNetworking`, which Bambu's cloud rejects on the print endpoint while every other call works, so the printer receives nothing and no error reaches the slicer. The installer now rewrites that stale line to `client_name = BambuStudio`. Update, then press Install / Update Open Bamboo Library once and restart.

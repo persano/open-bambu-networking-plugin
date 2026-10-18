@@ -2,6 +2,10 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.36 - 2026-10-18
+
+- The installer's `obn.conf` fixes (the 0.2.35 `client_name` rewrite and the `log_to_file` default) now tell you when OrcaSlicer's plugin permission system blocked the access, instead of skipping silently. Stock OrcaSlicer asks permission before a plugin may touch files outside its folder; if that prompt is denied or never answered, cloud prints keep answering HTTP 403 and the install message previously gave no hint. The message now names the manual one-line fix (`client_name = BambuStudio`) and mentions the permission prompt to allow on the next install.
+
 ## 0.2.35 - 2026-10-17
 
 - Fixed "a1mini can't print" (issue #4): an `obn.conf` created by an installer older than 0.2.28 carries `client_name = OpenBambooNetworking`, and `POST /v1/user-service/my/task` answers HTTP 403 `The client does not have access rights to the content.` for any client name that is not the stock `BambuStudio`. The reporter's `obn.log` shows both the warning (`create_task X-BBL-Client-Name=OpenBambooNetworking is not BambuStudio`) and the 403, while control, status and camera all keep working. The installer now rewrites that one stale value to `BambuStudio`, leaving any other `client_name` the user picked untouched; if the slicer's audit blocks the write, the install message asks for the one-line edit instead.

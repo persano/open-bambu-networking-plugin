@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.35"
+# version = "0.2.36"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -649,9 +649,10 @@ def get_log_file_path():
     return os.path.join(os.path.dirname(get_primary_plugin_dir()), "obn.log")
 
 _LOG_MANUAL_NOTE = (
-    " Could not enable file logging automatically (the slicer blocked the obn.conf "
-    "write); add 'log_to_file = 1' to obn.conf and restart OrcaSlicer so obn.log "
-    "captures diagnostics."
+    " Could not enable file logging automatically (OrcaSlicer blocked the plugin's "
+    "obn.conf access; allow the permission prompt it shows, if any). Add "
+    "'log_to_file = 1' to obn.conf and restart OrcaSlicer so obn.log captures "
+    "diagnostics."
 )
 
 def ensure_log_to_file():
@@ -701,9 +702,10 @@ def ensure_log_to_file():
     return " Enabled diagnostic file logging (obn.log next to obn.conf)."
 
 _CLIENT_NAME_MANUAL_NOTE = (
-    " Could not update client_name in obn.conf (the slicer blocked the write); "
-    "set 'client_name = BambuStudio' there yourself or cloud print keeps "
-    "answering HTTP 403."
+    " Could not check client_name in obn.conf (OrcaSlicer blocked the plugin's "
+    "obn.conf access; allow the permission prompt it shows, if any). Cloud print "
+    "answers HTTP 403 unless obn.conf has 'client_name = BambuStudio'; set that "
+    "line yourself if prints never reach the printer."
 )
 
 def ensure_client_name():
@@ -724,6 +726,10 @@ def ensure_client_name():
     try:
         with open(conf_path, "r", encoding="utf-8", errors="replace") as f:
             lines = f.readlines()
+    except PermissionError:
+        # Stock OrcaSlicer's plugin audit can deny obn.conf reads; staying quiet
+        # here would skip the rewrite with no hint while prints keep 403ing.
+        return _CLIENT_NAME_MANUAL_NOTE
     except Exception:
         return ""
 
