@@ -2,6 +2,11 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.39 - 2026-10-19
+
+- Added the compliance disclaimer (issue #7): README and OrcaCloud page now say the bundled library embeds credentials that are not yours and that you alone are responsible for ensuring your use complies with the applicable terms and law. That warning previously existed only in the upstream fork readme.
+- `extract_key_from_dump.py` is now credited to ClusterM/open-bamboo-networking and its contributors, at the script author's request that he not be named or linked.
+
 ## 0.2.38 - 2026-10-19
 
 - Attribution and licensing corrections after issue #7: the README, OrcaCloud page, and plugin description now state up front that this plugin is an installer around [ClusterM/open-bamboo-networking](https://github.com/ClusterM/open-bamboo-networking) and link [sponsors for the upstream author](https://github.com/sponsors/ClusterM).
