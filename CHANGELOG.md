@@ -2,6 +2,12 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.38 - 2026-10-19
+
+- Attribution and licensing corrections after issue #7: the README, OrcaCloud page, and plugin description now state up front that this plugin is an installer around [ClusterM/open-bamboo-networking](https://github.com/ClusterM/open-bamboo-networking), link [sponsors for the upstream author](https://github.com/sponsors/ClusterM), and credit [mitchcapper](https://github.com/mitchcapper) for `extract_key_from_dump.py`.
+- Dropped the "clean room" claims. The bundled library embeds a Bambu Lab application client secret to auto-fetch signing certificates, so it is not a clean-room implementation and is no longer described as one.
+- Every package (plugin zip and all three wheels) now ships the full AGPL-3.0 license text (`LICENSE.AGPL`) plus a `NOTICE` naming the upstream projects, the AGPL-3.0 terms that cover the bundled binaries, and the exact source revision they are built from. The repository license badge now reads GPL v3 (installer) / AGPL v3 (native libs).
+
 ## 0.2.37 - 2026-10-19
 
 - Linux installs now honor `XDG_CONFIG_HOME` when locating the OrcaSlicer data directory (issue #5). On Flatpak builds OrcaSlicer reads its config from `~/.var/app/<app-id>/config/OrcaSlicer`, while the installer hardcoded `~/.config/OrcaSlicer`, so every library copy landed in a directory the slicer never loads from.
@@ -155,7 +161,7 @@ All notable changes to Open Bamboo Networking are documented in this file.
 
 ## 0.2.11 - 2026-09-25
 
-- Fixed library status detection so stock vendor binaries are not falsely identified as clean room libraries.
+- Fixed library status detection so stock vendor binaries are not falsely identified as open source libraries.
 - Added separate "Restore Stock Backup" action alongside "Uninstall / Remove Library".
 - Fixed uninstall logic so active library is removed cleanly rather than restoring backup.
 
@@ -166,16 +172,16 @@ All notable changes to Open Bamboo Networking are documented in this file.
 
 ## 0.2.9 - 2026-09-25
 
-- Added pre-compiled macOS Apple Silicon (arm64) clean room library (libbambu_networking.dylib).
+- Added pre-compiled macOS Apple Silicon (arm64) open source library (libbambu_networking.dylib).
 - Added dedicated "Open Bamboo" tab in OrcaSlicer top bar with interactive dashboard and 1 click installer.
 - Removed socket calls on startup to ensure zero security audit warnings on application launch.
 - Added automated publishing to OrcaCloud Plugin Hub via GitHub Actions OIDC.
 
 ## 0.2.8 - 2026-09-25
 
-- Initial release bundling clean room networking libraries for Windows (x64) and Linux (x64).
+- Initial release bundling open source networking libraries for Windows (x64) and Linux (x64).
 - Enabled cloud printing without developer mode using automatic slicer key signing.
-- Enabled remote camera liveview over the internet via clean room ThroughTek (TUTK) P2P streaming.
+- Enabled remote camera liveview over the internet via ThroughTek (TUTK) P2P streaming.
 - Added instant stream teardown burst on camera stop, cutting reconnect delay to under 2 seconds.
 - Added proactive pushall telemetry request on cloud connect to sync AMS slot assignments immediately.
 - Filtered transient error codes caused by initial unsigned cloud requests.

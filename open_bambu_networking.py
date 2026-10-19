@@ -5,16 +5,18 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.37"
+# version = "0.2.38"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
-Provides automated provisioning, real-time GUI management, and status monitoring
-for the Open Bamboo Networking library (`bambu_networking.dll` / `libbambu_networking.so`).
-
-Built using clean room native libraries from persano/open-bamboo-networking,
-incorporating custom fixes for cloud printing with Developer Mode OFF,
-off-LAN ThroughTek (TUTK) camera liveview, and AMS slot sync.
+Installer and manager for the Open Bamboo Networking library
+(`bambu_networking.dll` / `libbambu_networking.so`). The native library is an
+AGPL-3.0 work built mostly from ClusterM/open-bamboo-networking, with patches
+in persano/open-bamboo-networking (cloud printing with Developer Mode OFF,
+off-LAN ThroughTek (TUTK) camera liveview, AMS slot sync). It embeds a Bambu
+Lab application client secret to auto-fetch the signing certificates, so it is
+not a clean-room implementation. See NOTICE and LICENSE.AGPL in the plugin
+package for licensing and attribution.
 
 Zero external processes or socket calls are executed on startup, avoiding any security audit prompts.
 """

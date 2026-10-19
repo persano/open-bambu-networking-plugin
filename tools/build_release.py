@@ -3,7 +3,7 @@ import zipfile
 import hashlib
 import base64
 
-VERSION = "0.2.37"
+VERSION = "0.2.38"
 DIST_INFO = f"open_bambu_networking-{VERSION}.dist-info"
 
 METADATA_CONTENT = f"""Metadata-Version: 2.1
@@ -57,6 +57,12 @@ def build_wheel(whl_filename, platform_files):
     files[f"{DIST_INFO}/WHEEL"] = WHEEL_CONTENT.encode("utf-8")
     files[f"{DIST_INFO}/top_level.txt"] = TOP_LEVEL_CONTENT.encode("utf-8")
 
+    # License + attribution: the bundled native binaries are AGPL-3.0 works of
+    # ClusterM/open-bamboo-networking (see NOTICE for the pinned source revision)
+    for lic in ("LICENSE", "LICENSE.AGPL", "NOTICE"):
+        if os.path.exists(lic):
+            files[f"{DIST_INFO}/{lic}"] = open(lic, "rb").read()
+
     # Build RFC 376 / PEP 427 RECORD with sha256 hashes and byte lengths
     record_lines = []
     for arcname, data in files.items():
@@ -90,6 +96,10 @@ def build_zip():
             z.write("README.md", "README.md")
         if os.path.exists("LICENSE"):
             z.write("LICENSE", "LICENSE")
+        if os.path.exists("LICENSE.AGPL"):
+            z.write("LICENSE.AGPL", "LICENSE.AGPL")
+        if os.path.exists("NOTICE"):
+            z.write("NOTICE", "NOTICE")
 
         # Binaries
         for root, _, filenames in os.walk("bin"):

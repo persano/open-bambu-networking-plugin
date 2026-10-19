@@ -1,3 +1,7 @@
+## 0.2.38 - 2026-10-19
+
+- Attribution and licensing fix (issue #7): the description now states up front that this plugin is an installer around ClusterM/open-bamboo-networking, links the upstream author's sponsorship page, and credits mitchcapper for the key extraction tooling. The "clean room" wording is gone: the bundled library embeds a Bambu Lab application client secret, so it is not a clean-room implementation. Every package now ships the full AGPL-3.0 license text and a NOTICE recording the upstream projects and the exact source revision of the bundled binaries.
+
 ## 0.2.37 - 2026-10-19
 
 - Linux: the installer now follows `XDG_CONFIG_HOME`, so on Flatpak OrcaSlicer builds it writes into the directory the slicer actually loads libraries from (`~/.var/app/com.orcaslicer.OrcaSlicer/config/OrcaSlicer/plugins`) instead of `~/.config/OrcaSlicer/plugins` (issue #5). The install error message on Linux/macOS no longer tells you to run OrcaSlicer as administrator. Note: stock OrcaSlicer's plugin permission system still blocks file writes inside the Flatpak data directory itself (a slicer-side issue, reported upstream); if your install still fails after updating, copy the bundled `bin/linux_x64/*.so` files into that `plugins/` folder once, as described in issue #5.
@@ -138,7 +142,7 @@
 
 ## 0.2.11 - 2026-09-25
 
-- Fixed library status detection so stock vendor binaries are not falsely identified as clean room libraries.
+- Fixed library status detection so stock vendor binaries are not falsely identified as open source libraries.
 - Added separate "Restore Stock Backup" action alongside "Uninstall / Remove Library".
 - Fixed uninstall logic so active library is removed cleanly rather than restoring backup.
 
@@ -149,16 +153,16 @@
 
 ## 0.2.9 - 2026-09-25
 
-- Added pre-compiled macOS Apple Silicon (arm64) clean room library (libbambu_networking.dylib).
+- Added pre-compiled macOS Apple Silicon (arm64) open source library (libbambu_networking.dylib).
 - Added dedicated "Open Bamboo" tab in OrcaSlicer top bar with interactive dashboard and 1 click installer.
 - Removed socket calls on startup to ensure zero security audit warnings on application launch.
 - Added automated publishing to OrcaCloud Plugin Hub via GitHub Actions OIDC.
 
 ## 0.2.8 - 2026-09-25
 
-- Initial release bundling clean room networking libraries for Windows (x64) and Linux (x64).
+- Initial release bundling open source networking libraries for Windows (x64) and Linux (x64).
 - Enabled cloud printing without developer mode using automatic slicer key signing.
-- Enabled remote camera liveview over the internet via clean room ThroughTek (TUTK) P2P streaming.
+- Enabled remote camera liveview over the internet via ThroughTek (TUTK) P2P streaming.
 - Added instant stream teardown burst on camera stop, cutting reconnect delay to under 2 seconds.
 - Added proactive pushall telemetry request on cloud connect to sync AMS slot assignments immediately.
 - Filtered transient error codes caused by initial unsigned cloud requests.
