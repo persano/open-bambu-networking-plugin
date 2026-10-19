@@ -22,8 +22,6 @@
 
 This plugin is an ease-of-use installer for a modified version of the masterful work from [ClusterM/open-bamboo-networking](https://github.com/ClusterM/open-bamboo-networking). Most of what makes printers talk is that project, not this repository. The native library embeds a Bambu Lab application client secret so it can automatically fetch the signing certificates required for cloud/LAN mode, which is why the shipped binaries are not a clean-room implementation. Donations to the upstream author are welcome at [GitHub Sponsors](https://github.com/sponsors/ClusterM) or via the [upstream support section](https://github.com/ClusterM/open-bamboo-networking#support-the-developer-and-the-project).
 
-The key-extraction tooling the embedded secret comes from (`tools/extract_key_from_dump.py` in open-bamboo-networking) was written by [mitchcapper](https://github.com/mitchcapper).
-
 Licensing: this repository's installer code is GPL-3.0 ([LICENSE](LICENSE)). The bundled native binaries are AGPL-3.0 works from the projects above; the full AGPL text ships in this repository and inside every package as [LICENSE.AGPL](LICENSE.AGPL), and [NOTICE](NOTICE) records the exact source revision each binary is built from.
 
 ## Why this exists
@@ -128,9 +126,8 @@ The pre-compiled binaries distributed inside this plugin (`bambu_networking.dll`
 
 ## Credits and Architecture
 
-- **[ClusterM](https://github.com/ClusterM)** and contributors to [`open-bamboo-networking`](https://github.com/ClusterM/open-bamboo-networking) for creating the open source implementation this plugin is built on. If this plugin saves you time, that is their work first: consider [sponsoring them](https://github.com/sponsors/ClusterM).
+- **[ClusterM](https://github.com/ClusterM)** and contributors to [`open-bamboo-networking`](https://github.com/ClusterM/open-bamboo-networking) for creating the open source implementation this plugin is built on, including the `tools/extract_key_from_dump.py` extraction tooling. If this plugin saves you time, that is their work first: consider [sponsoring them](https://github.com/sponsors/ClusterM).
 - **[persano](https://github.com/persano) (me)** for developing the cloud liveview ThroughTek TUTK P2P camera streaming patches, AMS pushall sync fixes, certificate fallbacks, and the OrcaSlicer Python plugin integration in [`persano/open-bamboo-networking`](https://github.com/persano/open-bamboo-networking).
-- **[mitchcapper](https://github.com/mitchcapper)** for `tools/extract_key_from_dump.py`, the key extraction tooling the embedded application secret originates from.
 - **[SoftFever](https://github.com/SoftFever)** and the OrcaSlicer team for building OrcaSlicer and the Python plugin framework.
 
 ---

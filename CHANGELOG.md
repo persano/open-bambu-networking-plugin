@@ -4,7 +4,7 @@ All notable changes to Open Bamboo Networking are documented in this file.
 
 ## 0.2.38 - 2026-10-19
 
-- Attribution and licensing corrections after issue #7: the README, OrcaCloud page, and plugin description now state up front that this plugin is an installer around [ClusterM/open-bamboo-networking](https://github.com/ClusterM/open-bamboo-networking), link [sponsors for the upstream author](https://github.com/sponsors/ClusterM), and credit [mitchcapper](https://github.com/mitchcapper) for `extract_key_from_dump.py`.
+- Attribution and licensing corrections after issue #7: the README, OrcaCloud page, and plugin description now state up front that this plugin is an installer around [ClusterM/open-bamboo-networking](https://github.com/ClusterM/open-bamboo-networking) and link [sponsors for the upstream author](https://github.com/sponsors/ClusterM).
 - Dropped the "clean room" claims. The bundled library embeds a Bambu Lab application client secret to auto-fetch signing certificates, so it is not a clean-room implementation and is no longer described as one.
 - Every package (plugin zip and all three wheels) now ships the full AGPL-3.0 license text (`LICENSE.AGPL`) plus a `NOTICE` naming the upstream projects, the AGPL-3.0 terms that cover the bundled binaries, and the exact source revision they are built from. The repository license badge now reads GPL v3 (installer) / AGPL v3 (native libs).
 

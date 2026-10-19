@@ -1,6 +1,6 @@
 ## 0.2.38 - 2026-10-19
 
-- Attribution and licensing fix (issue #7): the description now states up front that this plugin is an installer around ClusterM/open-bamboo-networking, links the upstream author's sponsorship page, and credits mitchcapper for the key extraction tooling. The "clean room" wording is gone: the bundled library embeds a Bambu Lab application client secret, so it is not a clean-room implementation. Every package now ships the full AGPL-3.0 license text and a NOTICE recording the upstream projects and the exact source revision of the bundled binaries.
+- Attribution and licensing fix (issue #7): the description now states up front that this plugin is an installer around ClusterM/open-bamboo-networking and links the upstream author's sponsorship page. The "clean room" wording is gone: the bundled library embeds a Bambu Lab application client secret, so it is not a clean-room implementation. Every package now ships the full AGPL-3.0 license text and a NOTICE recording the upstream projects and the exact source revision of the bundled binaries.
 
 ## 0.2.37 - 2026-10-19
 

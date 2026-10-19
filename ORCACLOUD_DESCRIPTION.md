@@ -16,7 +16,6 @@ This plugin is an ease-of-use installer for a modified version of the work from 
 ## Credits and licensing
 
 - The native networking library comes from [ClusterM/open-bamboo-networking](https://github.com/ClusterM/open-bamboo-networking), with patches from [persano/open-bamboo-networking](https://github.com/persano/open-bamboo-networking). It is AGPL-3.0 licensed; the full license text ships inside this plugin package.
-- The key extraction tooling the embedded secret comes from was written by [mitchcapper](https://github.com/mitchcapper).
 
 ## Open source and privacy first
 

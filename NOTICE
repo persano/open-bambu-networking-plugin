@@ -31,8 +31,7 @@ The library embeds a Bambu Lab application client_auth_secret and uses it to
 fetch the slicer signing certificate chain from Bambu's cloud, so cloud
 signing works without manual certificate extraction. That secret is recovered
 from a running Bambu Studio process with tools/extract_key_from_dump.py in
-open-bamboo-networking, a script written by mitchcapper
-(https://github.com/mitchcapper). This is not a clean-room implementation and
+open-bamboo-networking. This is not a clean-room implementation and
 must not be described as one.
 
 "OrcaSlicer" is a trademark of its respective owners. This project is not
