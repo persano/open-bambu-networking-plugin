@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.36"
+# version = "0.2.37"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -61,7 +61,13 @@ def get_primary_plugin_dir():
     elif sys.platform == "darwin":
         return os.path.expanduser("~/Library/Application Support/OrcaSlicer/plugins")
     else:
-        return os.path.expanduser("~/.config/OrcaSlicer/plugins")
+        # Flatpak forces XDG_CONFIG_HOME to ~/.var/app/<app-id>/config, which is
+        # the only directory the slicer reads; expanduser would point at the
+        # host ~/.config that OrcaSlicer never sees. Same probe the native
+        # library uses for reported_version (config.cpp).
+        xdg = os.environ.get("XDG_CONFIG_HOME", "")
+        root = xdg if xdg else os.path.expanduser("~/.config")
+        return os.path.join(root, "OrcaSlicer", "plugins")
 
 def get_all_plugin_dirs():
     """Returns all directories OrcaSlicer checks for networking libraries.
@@ -322,10 +328,16 @@ def safe_copy(src, dst):
         # Nothing was locked: the copy itself was refused (read-only folder such as
         # C:\Program Files, antivirus, ...) or the file is not there at all, so there
         # is no file to move aside and renaming it would fail with WinError 2.
+        hint = (
+            "The folder is not writable by OrcaSlicer, run "
+            "OrcaSlicer as administrator and try again"
+            if sys.platform.startswith("win")
+            else "OrcaSlicer cannot write to that folder; check its permissions "
+                 "and try again"
+        )
         raise OSError(
             f"Cannot create {os.path.basename(dst)} in {dst_dir or os.curdir}: "
-            f"{first_error}. The folder is not writable by OrcaSlicer, run "
-            "OrcaSlicer as administrator and try again"
+            f"{first_error}. {hint}"
         )
 
     base_old = dst + ".old"
@@ -901,7 +913,9 @@ def do_install():
         return True, (
             f"Open Bamboo library installed to {len(installed_targets)} location(s), "
             f"but not to {', '.join(failed_dirs)} ({detail}). Restart OrcaSlicer; if the "
-            "library is not picked up, start OrcaSlicer as administrator and install again."
+            + ("library is not picked up, start OrcaSlicer as administrator and install again."
+               if sys.platform.startswith("win")
+               else "the library is not picked up, check the folder permissions and install again.")
             + cleanup_note + conf_note + obn_note + log_note + client_note + adapt_note
         )
 

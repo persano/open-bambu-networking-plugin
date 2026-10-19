@@ -1,3 +1,7 @@
+## 0.2.37 - 2026-10-19
+
+- Linux: the installer now follows `XDG_CONFIG_HOME`, so on Flatpak OrcaSlicer builds it writes into the directory the slicer actually loads libraries from (`~/.var/app/com.orcaslicer.OrcaSlicer/config/OrcaSlicer/plugins`) instead of `~/.config/OrcaSlicer/plugins` (issue #5). The install error message on Linux/macOS no longer tells you to run OrcaSlicer as administrator. Note: stock OrcaSlicer's plugin permission system still blocks file writes inside the Flatpak data directory itself (a slicer-side issue, reported upstream); if your install still fails after updating, copy the bundled `bin/linux_x64/*.so` files into that `plugins/` folder once, as described in issue #5.
+
 ## 0.2.36 - 2026-10-18
 
 - Clearer installer feedback: when OrcaSlicer's plugin permission system blocks the `obn.conf` access, the install message now says so and gives the one-line manual fix, instead of the `client_name` rewrite being skipped silently while prints keep failing with HTTP 403. If the installer reports this, allow the permission prompt OrcaSlicer shows for the plugin (or set `client_name = BambuStudio` in `obn.conf` yourself), restart, and print again.

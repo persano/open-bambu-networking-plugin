@@ -2,6 +2,11 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.37 - 2026-10-19
+
+- Linux installs now honor `XDG_CONFIG_HOME` when locating the OrcaSlicer data directory (issue #5). On Flatpak builds OrcaSlicer reads its config from `~/.var/app/<app-id>/config/OrcaSlicer`, while the installer hardcoded `~/.config/OrcaSlicer`, so every library copy landed in a directory the slicer never loads from.
+- The "run OrcaSlicer as administrator" install hint now only appears on Windows; Linux and macOS get a folder-permissions message instead.
+
 ## 0.2.36 - 2026-10-18
 
 - The installer's `obn.conf` fixes (the 0.2.35 `client_name` rewrite and the `log_to_file` default) now tell you when OrcaSlicer's plugin permission system blocked the access, instead of skipping silently. Stock OrcaSlicer asks permission before a plugin may touch files outside its folder; if that prompt is denied or never answered, cloud prints keep answering HTTP 403 and the install message previously gave no hint. The message now names the manual one-line fix (`client_name = BambuStudio`) and mentions the permission prompt to allow on the next install.
