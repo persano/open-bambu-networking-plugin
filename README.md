@@ -91,6 +91,10 @@ The pre-compiled binaries distributed inside this plugin (`bambu_networking.dll`
 - Bambu Lab P1P / P1S
 - Bambu Lab A1 / A1 Mini
 - Bambu Lab X1 / X1 Carbon
+- Bambu Lab H2D (cloud print and camera verified against user reports)
+- Bambu Lab H2S (same H2-series fixes, no report from a real unit yet)
+
+Printers we have no confirmation for: P2S, X2D, X1E. They are not known to be broken, they are simply untested. If you run this plugin on one, open an issue and say so, results and logs decide whether these lists grow.
 
 ### Operating Systems
 - Windows 10 and 11 (x64) - Tested and verified

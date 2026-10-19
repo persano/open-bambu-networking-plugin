@@ -26,7 +26,7 @@ This plugin is an ease-of-use installer for a modified version of the work from 
 
 ## Requirements and compatibility
 
-- **Supported printers:** Bambu Lab P1P / P1S, A1 / A1 Mini, and X1 / X1 Carbon.
+- **Supported printers:** Bambu Lab P1P / P1S, A1 / A1 Mini, X1 / X1 Carbon, and H2D (verified from user reports). The H2S runs on the same series fixes but we have no report from a real unit. P2S, X2D and X1E are untested rather than known broken, if you run the plugin on one please open an issue on GitHub with your results.
 - **Operating systems:** Windows 10/11 (x64), Linux (x64), and macOS Apple Silicon (arm64).
 - **OrcaSlicer versions:** OrcaSlicer v2.3.0+, v2.4.0 official, and v2.5.0 nightly builds.
 
