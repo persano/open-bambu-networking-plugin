@@ -48,6 +48,10 @@ This plugin is an ease-of-use installer for a modified version of the work from 
 - **OrcaSlicer Developer Mode toggle:** The Developer mode toggle in OrcaSlicer preferences only unhides experimental slicer settings. It has no effect on printer connectivity or firmware security.
 - **Failed to connect to printer / server:** First check `block_cloud = 0` in `obn.conf` in your OrcaSlicer configuration folder (`%APPDATA%\OrcaSlicer\obn.conf` on Windows). The default `obn.conf` template ships `block_cloud = 1`, which blocks all cloud MQTT - if the log shows `blocked by block_cloud`, the plugin has no path to the printer and the slicer reports "Failed to connect". The installer writes or updates this key automatically; if you created `obn.conf` by hand, add the line yourself and restart OrcaSlicer. Also ensure you are logged into Bambu Cloud. If your network or ISP restricts TLS on port 8883, you can test adding `lan_tls_skip_verify = 1` to `obn.conf`. For LAN discovery issues, allow inbound UDP port 2021 for OrcaSlicer in your firewall and keep the printer and PC on the same subnet.
 
+## Disclaimer
+
+This is an independent community project, not affiliated with, endorsed by, or associated with Bambu Lab Inc. The bundled networking library embeds credentials that are not yours, and this plugin automates access to Bambu Lab cloud services. You alone are responsible for ensuring your use complies with the applicable terms and law.
+
 Source code, issue tracking, and pre-compiled packages are available on GitHub:
 
 Plugin: https://github.com/persano/open-bambu-networking-plugin

@@ -138,3 +138,5 @@ The pre-compiled binaries distributed inside this plugin (`bambu_networking.dll`
 ## Disclaimer
 
 This is an independent community project. It is not affiliated with, endorsed by, or associated with Bambu Lab Inc. All product names and brand names belong to their respective owners.
+
+The bundled networking library embeds credentials that are not yours, and this plugin automates access to Bambu Lab cloud services. You alone are responsible for ensuring your use complies with the applicable terms and law.
