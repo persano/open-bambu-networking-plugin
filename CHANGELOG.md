@@ -2,6 +2,10 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.40 - 2026-10-20
+
+- Fixed cloud print failing with error -3120 on H2D printers (issue #6 and the OrcaCloud comments): `POST /v1/user-service/my/task` answered HTTP 403 to the bearer-only request on every region, and the `mytask_pop = auto` default only attached the proof-of-possession header pair on the CN cloud. The plugin now retries that call once with the pair attached whenever the first attempt comes back 403, so H2D printers print without any config edit. Explicit `mytask_pop = 1` / `0` in `obn.conf` still win on the first attempt, and every printer that worked before sends the exact same first request. Libraries rebuilt from open-bamboo-networking `8979ec3` on all three platforms.
+
 ## 0.2.39 - 2026-10-19
 
 - Added the compliance disclaimer (issue #7): README and OrcaCloud page now say the bundled library embeds credentials that are not yours and that you alone are responsible for ensuring your use complies with the applicable terms and law. That warning previously existed only in the upstream fork readme.

@@ -1,3 +1,7 @@
+## 0.2.40 - 2026-10-20
+
+- Fixed cloud print failing with error -3120 on H2D printers: `POST /v1/user-service/my/task` answered HTTP 403 without the proof-of-possession header pair on every region. The plugin now retries that call once with the pair attached on a 403, so H2D printers print without any config edit. No config change: `mytask_pop = 1` in `obn.conf` keeps working and is no longer needed.
+
 ## 0.2.39 - 2026-10-19
 
 - Compliance disclaimer added (issue #7): the description now states that the bundled library embeds credentials that are not yours and that you alone are responsible for ensuring your use complies with the applicable terms and law. `extract_key_from_dump.py` is credited to ClusterM/open-bamboo-networking and its contributors instead of a personal credit, at the script author's request.

@@ -22,8 +22,8 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ da9d91f (2026-10-12, "cloud: derive
-  X-BBL-OS-Type from the signing leaf when no override")
+  persano/open-bamboo-networking @ 8979ec3 (2026-10-20, "fix(cloud_print):
+  retry /my/task once with PoP headers on 403")
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 
