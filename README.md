@@ -6,7 +6,7 @@
 
 # Open Bamboo Networking Plugin for OrcaSlicer
 
-[![Release](https://img.shields.io/badge/release-v0.2.40-blue.svg)](https://github.com/persano/open-bambu-networking-plugin/releases)
+[![Release](https://img.shields.io/badge/release-v0.2.41-blue.svg)](https://github.com/persano/open-bambu-networking-plugin/releases)
 [![License: GPL v3 (installer) / AGPL v3 (native libs)](https://img.shields.io/badge/License-GPLv3%20%2F%20AGPLv3-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)]()
 [![OrcaCloud](https://img.shields.io/badge/OrcaCloud-Plugin%20Hub-teal.svg)](https://cloud.orcaslicer.com/app/plugins/shared-plugins/5d35283e-0378-474d-8d3a-6d8f718fddeb)

@@ -1,3 +1,7 @@
+## 0.2.41 - 2026-10-21
+
+- Fixed cloud print failing with HTTP 403 and an empty camera feed on OrcaSlicer builds that block the plugin from reading or writing its config file. The installer now applies the required `client_name` and logging settings through the library itself, outside that block, so printing works without any manual edit of `obn.conf`. No config change needed on your side.
+
 ## 0.2.40 - 2026-10-20
 
 - Fixed cloud print failing with error -3120 on H2D printers: `POST /v1/user-service/my/task` answered HTTP 403 without the proof-of-possession header pair on every region. The plugin now retries that call once with the pair attached on a 403, so H2D printers print without any config edit. No config change: `mytask_pop = 1` in `obn.conf` keeps working and is no longer needed.

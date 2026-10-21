@@ -2,6 +2,10 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.41 - 2026-10-21
+
+- Fixed cloud print failing with HTTP 403 and no camera feed on OrcaSlicer builds that block the plugin from its own config file (report from an A1 on Windows 11, OrcaSlicer 2.5.0-alpha): when OrcaSlicer's plugin audit denies the installer all access to `obn.conf`, the `client_name` rewrite and the `log_to_file` default were skipped, so a stale `client_name = OpenBambooNetworking` made the cloud answer 403 on print registration and on the camera mint with no `obn.log` to diagnose it. The installer now applies `block_cloud`, `log_to_file` and `client_name` through the library in a single call that runs outside the audit hook, so prints work without any hand-editing of `obn.conf` and `obn.log` exists for the next report. A config file created fresh at install time now gets `log_to_file = 1`, matching what the installer writes when OrcaSlicer allows the file. Explicit user values are still never touched. Libraries rebuilt from open-bamboo-networking `85c2b52` on all three platforms.
+
 ## 0.2.40 - 2026-10-20
 
 - Fixed cloud print failing with error -3120 on H2D printers (issue #6 and the OrcaCloud comments): `POST /v1/user-service/my/task` answered HTTP 403 to the bearer-only request on every region, and the `mytask_pop = auto` default only attached the proof-of-possession header pair on the CN cloud. The plugin now retries that call once with the pair attached whenever the first attempt comes back 403, so H2D printers print without any config edit. Explicit `mytask_pop = 1` / `0` in `obn.conf` still win on the first attempt, and every printer that worked before sends the exact same first request. Libraries rebuilt from open-bamboo-networking `8979ec3` on all three platforms.
