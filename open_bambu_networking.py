@@ -522,17 +522,16 @@ def get_status_dict():
         "arch": "x64" if sys.maxsize > 2**32 else "x86"
     }
 
-def _native_ensure_obn_conf(conf_path):
-    """Delegate the obn.conf write to the networking library; returns an outcome code.
+def _native_conf_call(fn_name, conf_path):
+    """Call `fn_name(conf_path)` inside the networking library; None on failure.
 
     OrcaSlicer's plugin audit hard-denies every Python open() of a path whose
     name contains "conf" before any allowed-root or permission flow runs, so
-    the direct write below always fails with "Plugin attempted an audited
-    operation without permission". The library itself owns obn.conf and its
-    C++ writes are outside the Python audit hook, so the installer asks it to
-    apply the same block_cloud = 0 fix. Returns None when no library exposing
-    obn_ensure_conf_block_cloud() could be loaded (older installs), which
-    sends the caller down the direct-write fallback.
+    the installer delegates its obn.conf writes to the library: C++ writes
+    are outside the Python audit hook and the library owns the file anyway.
+    Returns None when ctypes is unavailable, no candidate library exposes
+    the function, or the call raises (older installs), which sends the
+    caller down its direct-write fallback.
     """
     try:
         import ctypes
@@ -556,7 +555,7 @@ def _native_ensure_obn_conf(conf_path):
             lib = ctypes.CDLL(cand)
         except Exception:
             continue
-        fn = getattr(lib, "obn_ensure_conf_block_cloud", None)
+        fn = getattr(lib, fn_name, None)
         if fn is None:
             continue
         fn.argtypes = [ctypes.c_char_p]
@@ -567,12 +566,27 @@ def _native_ensure_obn_conf(conf_path):
             continue
     return None
 
+def _native_ensure_obn_conf(conf_path):
+    """Outcome code of the legacy single-fix export (block_cloud only),
+    or None when the library predates it; see _native_conf_call."""
+    return _native_conf_call("obn_ensure_conf_block_cloud", conf_path)
+
 # Outcome codes from obn_ensure_conf_block_cloud(), worded exactly like the
 # direct-write messages below so the install dialog stays unchanged.
 _NATIVE_CONF_NOTES = {
     1: " Enabled Bambu Cloud in obn.conf (block_cloud = 0).",
     2: " Set block_cloud = 0 in obn.conf (it was blocking Bambu Cloud).",
     3: " Added block_cloud = 0 to obn.conf (enables Bambu Cloud).",
+}
+
+# Bytes 1 and 2 of obn_ensure_conf_fixes(): 0 means "already right / user
+# value kept" and adds no message; the wording matches the Python paths
+# these replace (ensure_log_to_file, ensure_client_name).
+_NATIVE_LOG_NOTES = {
+    1: " Enabled diagnostic file logging (obn.log next to obn.conf).",
+}
+_NATIVE_CLIENT_NOTES = {
+    1: " Set client_name = BambuStudio in obn.conf (any other value gets HTTP 403 from cloud print).",
 }
 
 def ensure_obn_conf():
@@ -766,6 +780,31 @@ def ensure_client_name():
         return _CLIENT_NAME_MANUAL_NOTE
     return " Set client_name = BambuStudio in obn.conf (any other value gets HTTP 403 from cloud print)."
 
+def ensure_conf_fixes_notes():
+    """Apply all three obn.conf fixes through the library in one pass.
+
+    Returns (obn_note, log_note, client_note) worded exactly like
+    ensure_obn_conf(), ensure_log_to_file() and ensure_client_name(), or
+    None when the library predates obn_ensure_conf_fixes() (or its read or
+    write failed), so the caller keeps the legacy three-function flow with
+    its Python fallbacks and manual-step notes.
+
+    Why this exists: on OrcaSlicer builds whose audit hard-denies Python
+    "conf" access (report of 2026-10-21: A1 on Win11, OrcaSlicer
+    2.5.0-alpha) the client_name rewrite and the log_to_file default never
+    ran, cloud print answered HTTP 403 with no obn.log to diagnose it, and
+    the installer could only tell the user to edit the file by hand.
+    """
+    conf_path = os.path.join(os.path.dirname(get_primary_plugin_dir()), "obn.conf")
+    packed = _native_conf_call("obn_ensure_conf_fixes", conf_path)
+    if packed is None or packed < 0:
+        return None
+    return (
+        _NATIVE_CONF_NOTES.get(packed & 0xFF, ""),
+        _NATIVE_LOG_NOTES.get((packed >> 8) & 0xFF, ""),
+        _NATIVE_CLIENT_NOTES.get((packed >> 16) & 0xFF, ""),
+    )
+
 def do_install():
     cleanup_old_files()
 
@@ -890,9 +929,13 @@ def do_install():
             "missing: enable Preferences > Enable Bambu network plug-in, then restart."
         )
 
-    obn_note = ensure_obn_conf()
-    log_note = ensure_log_to_file()
-    client_note = ensure_client_name()
+    fixes = ensure_conf_fixes_notes()
+    if fixes is not None:
+        obn_note, log_note, client_note = fixes
+    else:
+        obn_note = ensure_obn_conf()
+        log_note = ensure_log_to_file()
+        client_note = ensure_client_name()
 
     # Adaptive install: make the library report the host's series. Written only
     # after a successful install; uninstall/restore stock remove it again.
