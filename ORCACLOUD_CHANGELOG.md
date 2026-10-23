@@ -1,3 +1,7 @@
+## 0.2.42 - 2026-10-22
+
+- Fixed prints failing with HTTP 403 and the LAN mode restriction dialog on OrcaSlicer setups configured for network plug-in version 02.03.00, for example configs migrated from Bambu Studio. The plugin now installs a matching 02.03.00 library, so that configuration binds Open Bamboo instead of the official stock plug-in and prints, camera and logging work there too. No config change needed on your side.
+
 ## 0.2.41 - 2026-10-21
 
 - Fixed cloud print failing with HTTP 403 and an empty camera feed on OrcaSlicer builds that block the plugin from reading or writing its config file. The installer now applies the required `client_name` and logging settings through the library itself, outside that block, so printing works without any manual edit of `obn.conf`. No config change needed on your side.
