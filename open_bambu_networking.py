@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.41"
+# version = "0.2.42"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -33,11 +33,19 @@ import orca
 # AVAILABLE_NETWORK_VERSIONS whitelist declares. A library reporting any other series (02.08.02)
 # is refused, the configured version ping-pongs, and the slicer keeps re-offering its own
 # download with "Bambu Network plug-in not detected". The installer therefore pins the series
-# and ships both of the ones OrcaSlicer accepts: 02.08.04 is the current latest (OrcaSlicer
-# PR #16202), 02.08.01 remains for builds whose whitelist predates it.
+# and ships all of the ones OrcaSlicer accepts: 02.08.04 is the current latest (OrcaSlicer
+# PR #16202), 02.08.01 remains for builds whose whitelist predates it, 02.03.00 for configs
+# pinned to that series.
 INSTALL_SERIES = "02.08.04"
 SECONDARY_SERIES = "02.08.01"
-SUPPORTED_SERIES = (INSTALL_SERIES, SECONDARY_SERIES)
+# OrcaSlicer configs pinned to 02.03.00 (migrated from Bambu Studio, or set
+# before the whitelist gained 02.08.04) bind only bambu_networking_02.03.00.*,
+# so without this file the official stock build answers 403 and shows the LAN
+# mode dialog there. A real series build is required, not the adaptive rename:
+# 02.03.00 removes fields (PrintParams_0203, bind without dev_model), and the
+# adaptive rename hands the older by-value layouts a Current-ABI library.
+V0203_SERIES = "02.03.00"
+SUPPORTED_SERIES = (INSTALL_SERIES, SECONDARY_SERIES, V0203_SERIES)
 LEGACY_SERIES = "01.10.01"
 VERSION_RE = re.compile(rb"0[12]\.\d{2}\.\d{2}\.\d{2}(?:\.\d{2})?")
 
@@ -128,6 +136,15 @@ def get_bundled_plugin_path():
         return os.path.join(plugin_root, "bin", "macos_arm64", "libbambu_networking.dylib")
     return ""
 
+def get_bundled_series_path(series):
+    """The bundled build for one series, or "" when the wheel ships none."""
+    primary = get_bundled_plugin_path()
+    if not primary or not series:
+        return ""
+    prefix, suffix = get_lib_prefix_suffix()
+    candidate = os.path.join(os.path.dirname(primary), f"{prefix}_{series}{suffix}")
+    return candidate if os.path.exists(candidate) else ""
+
 def get_bundled_secondary_path():
     """The second series build shipped next to the primary one.
 
@@ -136,12 +153,7 @@ def get_bundled_secondary_path():
     the 02.08.04 series files exist. Returns "" when the wheel carries no
     secondary build.
     """
-    primary = get_bundled_plugin_path()
-    if not primary:
-        return ""
-    prefix, suffix = get_lib_prefix_suffix()
-    candidate = os.path.join(os.path.dirname(primary), f"{prefix}_{SECONDARY_SERIES}{suffix}")
-    return candidate if os.path.exists(candidate) else ""
+    return get_bundled_series_path(SECONDARY_SERIES)
 
 def get_sidecar_names():
     """Companion modules OrcaSlicer loads next to the network library.
@@ -446,7 +458,8 @@ def get_status_dict():
     bundled_exists = os.path.exists(bundled)
     bundled_hash = get_file_hash(bundled)
     bundled_secondary_hash = get_file_hash(get_bundled_secondary_path())
-    valid_hashes = {h for h in (bundled_hash, bundled_secondary_hash) if h}
+    bundled_v0203_hash = get_file_hash(get_bundled_series_path(V0203_SERIES))
+    valid_hashes = {h for h in (bundled_hash, bundled_secondary_hash, bundled_v0203_hash) if h}
 
     # Check if ANY active library across all plugin directories is Open Bamboo
     is_open_bamboo = False
@@ -817,9 +830,12 @@ def do_install():
         return False, series_warning
 
     bundled_secondary = get_bundled_secondary_path()
+    bundled_v0203 = get_bundled_series_path(V0203_SERIES)
     bundled_hashes = {bundled: get_file_hash(bundled)}
     if bundled_secondary:
         bundled_hashes[bundled_secondary] = get_file_hash(bundled_secondary)
+    if bundled_v0203:
+        bundled_hashes[bundled_v0203] = get_file_hash(bundled_v0203)
     prefix, suffix = get_lib_prefix_suffix()
     versioned_prefix = prefix + "_"
     host_series = adaptive_series()
@@ -836,8 +852,9 @@ def do_install():
             failures.append((pdir, str(e)))
             continue
 
-        # Both series files are written: OrcaSlicer binds `_02.08.04` on builds whose
-        # whitelist has PR #16202, `_02.08.01` on older ones, and the unversioned
+        # Every series file is written: OrcaSlicer binds `_02.08.04` on builds
+        # whose whitelist has PR #16202, `_02.08.01` on older ones, `_02.03.00`
+        # where the config is pinned to that series, and the unversioned
         # default as a last fallback. Each series keeps its own build bytes.
         targets_to_update = {
             os.path.join(pdir, f"{prefix}{suffix}"): bundled,
@@ -845,6 +862,8 @@ def do_install():
         }
         if bundled_secondary:
             targets_to_update[os.path.join(pdir, f"{prefix}_{SECONDARY_SERIES}{suffix}")] = bundled_secondary
+        if bundled_v0203:
+            targets_to_update[os.path.join(pdir, f"{prefix}_{V0203_SERIES}{suffix}")] = bundled_v0203
         # Adaptive file for a future series the host whitelists but this
         # release does not ship; the override below makes the library report
         # that series so the slicer binds it.
@@ -861,6 +880,9 @@ def do_install():
                 if ver.startswith(SECONDARY_SERIES):
                     if bundled_secondary:
                         targets_to_update[os.path.join(pdir, f)] = bundled_secondary
+                elif ver.startswith(V0203_SERIES):
+                    if bundled_v0203:
+                        targets_to_update[os.path.join(pdir, f)] = bundled_v0203
                 elif ver.startswith(INSTALL_SERIES):
                     targets_to_update[os.path.join(pdir, f)] = bundled
                 elif host_series and ver == host_series:
@@ -1030,7 +1052,8 @@ def do_restore_stock():
     bundled = get_bundled_plugin_path()
     bundled_hash = get_file_hash(bundled)
     bundled_secondary_hash = get_file_hash(get_bundled_secondary_path())
-    obn_hashes = {h for h in (bundled_hash, bundled_secondary_hash) if h}
+    bundled_v0203_hash = get_file_hash(get_bundled_series_path(V0203_SERIES))
+    obn_hashes = {h for h in (bundled_hash, bundled_secondary_hash, bundled_v0203_hash) if h}
 
     # First, locate any master stock backup across all plugin directories
     master_stock = ""
