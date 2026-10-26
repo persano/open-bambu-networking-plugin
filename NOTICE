@@ -7,7 +7,7 @@ licensed under GNU GPL v3 (see LICENSE).
 The precompiled native libraries shipped in bin/ and inside the wheels and
 plugin zip (bambu_networking.dll / libbambu_networking.so /
 libbambu_networking.dylib, BambuSource.*, liblive555.*, and their 02.08.01
-variants) are NOT written by the author of this plugin. They are built from:
+and 02.03.00 variants) are NOT written by the author of this plugin. They are built from:
 
   Upstream project:  https://github.com/ClusterM/open-bamboo-networking
                      Copyright (C) 2026 Alexey Cluster and contributors
@@ -22,8 +22,8 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ 85c2b52 (2026-10-21, "fix(config):
-  native obn_ensure_conf_fixes covers log_to_file and client_name")
+  persano/open-bamboo-networking @ b14f880 (2026-10-26, "Merge
+  ClusterM/master into option-b-cloud-rescue")
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 

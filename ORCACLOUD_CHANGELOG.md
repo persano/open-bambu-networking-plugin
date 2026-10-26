@@ -1,3 +1,7 @@
+## 0.2.43 - 2026-10-26
+
+- Synced with ClusterM upstream. SD card prints now carry the file address the firmware checks, so secured printers accept them instead of failing file verification (error 84033544). Discovery shuts down cleanly between sessions, cover upload failures show the real underlying error instead of a generic one, the best cloud cover thumbnail is kept, and the signing certificate id is logged once so 403 reports can be diagnosed from `obn.log`. No config change needed on your side.
+
 ## 0.2.42 - 2026-10-22
 
 - Fixed prints failing with HTTP 403 and the LAN mode restriction dialog on OrcaSlicer setups configured for network plug-in version 02.03.00, for example configs migrated from Bambu Studio. The plugin now installs a matching 02.03.00 library, so that configuration binds Open Bamboo instead of the official stock plug-in and prints, camera and logging work there too. No config change needed on your side.

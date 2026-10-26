@@ -2,6 +2,17 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.43 - 2026-10-26
+
+- Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `b14f880` merges ClusterM master `e972aac` (23 commits on top of the 0.2.42 pin `85c2b52`). Libraries rebuilt from `b14f880` on all three platforms, all three series (default 02.08.04, 02.08.01, 02.03.00). What reaches users:
+  - **SD card prints on secured printers**: `bambu_network_start_sdcard_print` now sends the project file `url` built from `dst_file`, so the firmware's file verify (`err_code 84033544`) gets the `url_enc` the signing path produces instead of a project file without url (ClusterM `160b667`).
+  - **SSDP shutdown race**: `Discovery::stop()` joins its listener thread before returning (ClusterM #132), so closing discovery no longer races the thread.
+  - **Cover fetch errors are specific**: `tunnel_upload` reports the underlying `LIST_INFO` (ClusterM #127) and `SUB_FILE` (ClusterM #136) failures in the cover fetch error instead of a bare failure, and keeps the best-ranked thumbnail from `SUB_FILE` (ClusterM #128).
+  - **cover_server shutdown**: the accept thread is joined before the listening socket is closed (ClusterM #130).
+  - **Diagnostics**: the slicer's application certificate id is logged once on the first usable check (ClusterM `d6e0cb9`), which makes 403 reports diagnosable from `obn.log`.
+  - Minor socket compatibility fixes (ClusterM `1a955f8`); research/ABI docs refreshed (ClusterM `2f6e44a`, `331a4f2`, `392e60a`, `fe2df5d`, `f1fe63f`, `922c3e9`, `e972aac`); upstream bumped to v2.3.0 (`2c17a64`).
+- Repo-side, not user-visible: upstream's plain-`main()` rewrite of the SSDP fixture suite plus its SHA-256 fixture manifest and vendored PandaSpy license (ClusterM #114) are adopted — the fork's Catch2 variant of that test is dropped, it covered the same 12 fixtures (no test in the tree uses Catch2 now). Trailing top-level siblings keep being signed and emitted (fork `ea52a26`, equivalent to open PR ClusterM#117); `research/10.04` now records that as implemented instead of pinned-not-fixed. Hung tests time out in CI instead of eating the job limit (ClusterM #134).
+
 ## 0.2.42 - 2026-10-22
 
 - Fixed prints failing with HTTP 403 and the "Network Plug-in Restriction" dialog on OrcaSlicer builds whose config is pinned to network plug-in series 02.03.00 (report from an H2C on Windows 11, OrcaSlicer 2.5.0-alpha build `3880f2c5`): OrcaSlicer binds only the file for its configured series, so it loaded the official stock `bambu_networking_02.03.00.dll` and never the Open Bamboo library. That is why every cloud print got 403, LAN and Developer mode showed as unavailable, no `obn.log` was ever created, and the stock library crashed the app three times with an access violation. The plugin now ships a real 02.03.00 series library built from the same source: with `OBN_VERSION=02.03.00.99` the `dev_model` bind parameter and the post-02.03 `PrintParams` fields compile out behind their `#if ABI_VERSION >=` guards, which is exactly the `NetworkAbi::V0203` layout and signature OrcaSlicer dispatches for that series. It installs as `bambu_networking_02.03.00.*` next to the other two, so a 02.03.00-pinned config binds the Open Bamboo library with no config edit. The adaptive rename deliberately stays off that series: it can only reuse the current build for series that add fields, and 02.03.00 removes them. Libraries rebuilt from open-bamboo-networking `85c2b52` on all three platforms.
