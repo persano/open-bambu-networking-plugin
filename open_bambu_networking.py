@@ -1355,6 +1355,13 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
     font-family: Consolas, monospace;
     word-break: break-all;
   }}
+  .meta-note {{
+    grid-column: 1 / -1;
+    font-size: 12px;
+    color: var(--text-secondary);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 8px;
+  }}
 
   .btn-group {{
     display: flex;
@@ -1514,6 +1521,7 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
 
       <div class="meta-key">Platform:</div>
       <div id="platformText" class="meta-val">-</div>
+      <div class="meta-note">Clean-room build (compiled with OBN_EMBED_SECRET=OFF): put <code>client_auth_secret.txt</code> (43 ASCII bytes) into the folder shown for Log File, or set the OBN_CLIENT_AUTH_SECRET environment variable, so the app-cert fetch can run. Default builds embed the value and need neither.</div>
     </div>
 
     <div class="btn-group">
