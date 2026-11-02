@@ -2,6 +2,15 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.44 - 2026-11-02
+
+- Fixed a stale stop command cancelling a running print hours later (issue #9): after a LAN MQTT drop and reconnect, libmosquitto re-sent an unacknowledged QoS 1 `print.stop` from hours earlier (its outgoing in-flight queue survives reconnects even with `clean_session=true`), which killed a print at 81% with `print_error 50348044`. Printer request-topic commands now publish at QoS 0 in `LanSession::publish_json` and `CloudSession::publish`, so a command can never be delivered late; a command the printer missed is visible in its next status report instead. Reported with an analysed patch by the issue author, applied for both LAN and cloud sessions.
+- Fixed the camera staying black on Windows until `BambuSource.dll` was registered by hand (issue #8): the installer now calls the filter's `DllRegisterServer` (HKCU, no administrator needed) after copying it, which is the registration OrcaSlicer only performs when it copies the network plug-in itself. Uninstall and Restore stock call `DllUnregisterServer` and re-point the CLSID at whatever file remains. The install message says when registration ran.
+- Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `c5f1592` merges ClusterM master `707d3b4` (6 commits on top of the 0.2.43 pin `b14f880`). Libraries rebuilt from `c5f1592` on all three platforms, all three series (default 02.08.04, 02.08.01, 02.03.00). What reaches users:
+  - **Covers for prints started on the printer's screen or over LAN**: cover fetching matches the uploaded 3MF's model file by its title and takes the print cover from the 3MF (ClusterM #138, #140, `e51e6c0`, `707d3b4`).
+  - **SSDP start failure leaves no stale state**: a worker-thread creation failure now cleans up `start()` state instead of wedging discovery (ClusterM #143 `0330c88`).
+  - Research corpus refreshed (ClusterM `082a81e`).
+
 ## 0.2.43 - 2026-10-26
 
 - Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `b14f880` merges ClusterM master `e972aac` (23 commits on top of the 0.2.42 pin `85c2b52`). Libraries rebuilt from `b14f880` on all three platforms, all three series (default 02.08.04, 02.08.01, 02.03.00). What reaches users:

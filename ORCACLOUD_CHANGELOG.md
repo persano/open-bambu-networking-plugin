@@ -1,3 +1,7 @@
+## 0.2.44 - 2026-11-02
+- Fixed a stale command cancelling a print hours later (issue #9): when the LAN connection dropped and reconnected, the library could re-send an old stop command that had never been acknowledged, which killed a running print. Commands sent to the printer now go out without redelivery, so a late command can never arrive; a missed one shows up in the printer's next report instead. Works the same on LAN and cloud connections.
+- Fixed the camera showing a black image on Windows until `BambuSource.dll` was registered manually (issue #8): the installer now registers the camera filter itself while installing (per-user, no administrator rights) and unregisters it on uninstall or Restore stock. The install message says when this ran.
+- Synced with ClusterM upstream. Covers now appear for prints started on the printer's screen or in LAN mode, cover lookup matches the uploaded model by its title, and discovery starts cleanly again after a failed start. No config change needed on your side.
 ## 0.2.43 - 2026-10-26
 
 - Synced with ClusterM upstream. SD card prints now carry the file address the firmware checks, so secured printers accept them instead of failing file verification (error 84033544). Discovery shuts down cleanly between sessions, cover upload failures show the real underlying error instead of a generic one, the best cloud cover thumbnail is kept, and the signing certificate id is logged once so 403 reports can be diagnosed from `obn.log`. No config change needed on your side.
