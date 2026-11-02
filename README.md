@@ -6,7 +6,7 @@
 
 # Open Bamboo Networking Plugin for OrcaSlicer
 
-[![Release](https://img.shields.io/badge/release-v0.2.43-blue.svg)](https://github.com/persano/open-bambu-networking-plugin/releases)
+[![Release](https://img.shields.io/badge/release-v0.2.44-blue.svg)](https://github.com/persano/open-bambu-networking-plugin/releases)
 [![License: GPL v3 (installer) / AGPL v3 (native libs)](https://img.shields.io/badge/License-GPLv3%20%2F%20AGPLv3-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)]()
 [![OrcaCloud](https://img.shields.io/badge/OrcaCloud-Plugin%20Hub-teal.svg)](https://cloud.orcaslicer.com/app/plugins/shared-plugins/5d35283e-0378-474d-8d3a-6d8f718fddeb)
@@ -89,12 +89,19 @@ The pre-compiled binaries distributed inside this plugin (`bambu_networking.dll`
 
 ### Supported Printers
 - Bambu Lab P1P / P1S
+- Bambu Lab P2S (cloud print and camera confirmed by two user reports, issues #8 and the OrcaCloud comments)
 - Bambu Lab A1 / A1 Mini
 - Bambu Lab X1 / X1 Carbon
 - Bambu Lab H2D (cloud print and camera verified against user reports)
+- Bambu Lab X2D (connects and prints, 4 h stable per user report; intermittent liveview drops reported and under investigation)
 - Bambu Lab H2S (same H2-series fixes, no report from a real unit yet)
 
-Printers we have no confirmation for: P2S, X2D, X1E. They are not known to be broken, they are simply untested. If you run this plugin on one, open an issue and say so, results and logs decide whether these lists grow.
+Printers we have no confirmation for: X1E. It is not known to be broken, it is simply untested. If you run this plugin on one, open an issue and say so, results and logs decide whether these lists grow.
+
+### Workarounds and settings to check
+- **Keep "Use 3rd Party Print Host" OFF** in the printer settings. When it is on, OrcaSlicer routes the job to that host instead of through the network plug-in: the send fails with **error code 7** while the camera and printer controls keep working (P2S report on the OrcaCloud page). Turning the setting off fixes it, no plugin change involved.
+- **OrcaSlicer must bind the plugin series it is configured for.** If OrcaSlicer reports the network plug-in as missing or asks for a version like `v02.08.04.99`, run **Install / Update Open Bamboo Library** once more and restart. The installer writes the series override itself; a stock or stale plug-in file left in place is what causes the loop.
+- **Windows camera black (plugin 0.2.43 and older):** the camera filter was copied but not registered. Register it once with `regsvr32 "…\plugins\BambuSource.dll"`, or just update: since 0.2.44 the installer registers it automatically (per user, no administrator needed).
 
 ### Operating Systems
 - Windows 10 and 11 (x64) - Tested and verified
@@ -104,7 +111,7 @@ Printers we have no confirmation for: P2S, X2D, X1E. They are not known to be br
 ### OrcaSlicer Versions
 - OrcaSlicer 2.3.0 and newer
 - OrcaSlicer 2.4.0 official
-- OrcaSlicer 2.5.0 nightly builds
+- OrcaSlicer 2.5.0 beta and nightly builds
 
 ---
 

@@ -26,9 +26,10 @@ This plugin is an ease-of-use installer for a modified version of the work from 
 
 ## Requirements and compatibility
 
-- **Supported printers:** Bambu Lab P1P / P1S, A1 / A1 Mini, X1 / X1 Carbon, and H2D (verified from user reports). The H2S runs on the same series fixes but we have no report from a real unit. P2S, X2D and X1E are untested rather than known broken, if you run the plugin on one please open an issue on GitHub with your results.
+- **Supported printers:** Bambu Lab P1P / P1S, P2S, A1 / A1 Mini, X1 / X1 Carbon, H2D (all verified from user reports) and X2D (connects and prints, occasional liveview drops under investigation). The H2S runs on the same series fixes but we have no report from a real unit. X1E is untested rather than known broken, if you run the plugin on one please open an issue on GitHub with your results.
 - **Operating systems:** Windows 10/11 (x64), Linux (x64), and macOS Apple Silicon (arm64).
-- **OrcaSlicer versions:** OrcaSlicer v2.3.0+, v2.4.0 official, and v2.5.0 nightly builds.
+- **OrcaSlicer versions:** OrcaSlicer v2.3.0+, v2.4.0 official, and v2.5.0 beta / nightly builds.
+- **Before reporting "error code 7":** turn **OFF** "Use 3rd Party Print Host" in the printer settings. While it is on, OrcaSlicer sends the job to that host instead of through this plugin (the camera and controls still work), and the send fails. Also, if OrcaSlicer asks for a plug-in version like `v02.08.04.99` or reports the plug-in missing, click **Install / Update Open Bamboo Library** once more and restart.
 
 ![Open Bambu Network Installed](https://api.orcaslicer.com/api/v1/bundles/media/56b81240-7a2d-4aaf-b45e-853d360da535/content)
 
