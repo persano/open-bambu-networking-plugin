@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.43"
+# version = "0.2.44"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -186,6 +186,44 @@ def install_sidecar(name, pdir):
             except Exception:
                 pass
     safe_copy(src, dst)
+
+def register_bambu_source(pdir, register=True):
+    """Register or unregister BambuSource.dll as a DirectShow source filter.
+
+    Registration lives in HKCU (no admin needed) and is what makes the
+    camera liveview resolve the bambu: URL scheme. OrcaSlicer only runs it
+    when it copies the network plug-in itself, so a library dropped in by
+    this installer stays unregistered and the camera stays black until the
+    user runs regsvr32 by hand (issue #8). Best effort: returns True when
+    the export answered a success HRESULT.
+    """
+    if not sys.platform.startswith("win"):
+        return False
+    dll = os.path.join(pdir, "BambuSource.dll")
+    if not os.path.exists(dll):
+        return False
+    try:
+        import ctypes
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.LoadLibraryW.argtypes = [ctypes.c_wchar_p]
+        kernel32.LoadLibraryW.restype = ctypes.c_void_p
+        kernel32.GetProcAddress.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        kernel32.GetProcAddress.restype = ctypes.c_void_p
+        kernel32.FreeLibrary.argtypes = [ctypes.c_void_p]
+        handle = kernel32.LoadLibraryW(dll)
+        if not handle:
+            return False
+        try:
+            export = b"DllRegisterServer" if register else b"DllUnregisterServer"
+            addr = kernel32.GetProcAddress(handle, export)
+            if not addr:
+                return False
+            fn = ctypes.WINFUNCTYPE(ctypes.c_long)(addr)
+            return fn() >= 0
+        finally:
+            kernel32.FreeLibrary(handle)
+    except Exception:
+        return False
 
 def read_reported_version(path):
     """The version string the library answers with for bambu_network_get_version()."""
@@ -843,6 +881,7 @@ def do_install():
     installed_targets = []
     conflicting_removed = []
     failures = []
+    cam_registered = False
     plugin_dirs = get_all_plugin_dirs()
 
     for pdir in plugin_dirs:
@@ -936,6 +975,12 @@ def do_install():
             except Exception:
                 pass
 
+        # Registration is stateful, so it runs even when install_sidecar
+        # skipped an identical copy: an older install copied the DLL and
+        # never registered it (issue #8).
+        if register_bambu_source(pdir):
+            cam_registered = True
+
     if not installed_targets:
         detail = "; ".join(f"{t}: {e}" for t, e in failures[:3]) or "unknown error"
         return False, f"Failed to install: {detail}"
@@ -974,6 +1019,10 @@ def do_install():
     else:
         write_override_version("")
 
+    cam_note = ""
+    if cam_registered:
+        cam_note = " Registered the camera DirectShow filter (BambuSource.dll)."
+
     if failures:
         failed_dirs = sorted({t if t in plugin_dirs else os.path.dirname(t) for t, _ in failures})
         detail = "; ".join(f"{t}: {e}" for t, e in failures[:2])
@@ -983,13 +1032,13 @@ def do_install():
             + ("library is not picked up, start OrcaSlicer as administrator and install again."
                if sys.platform.startswith("win")
                else "the library is not picked up, check the folder permissions and install again.")
-            + cleanup_note + conf_note + obn_note + log_note + client_note + adapt_note
+            + cleanup_note + conf_note + obn_note + log_note + client_note + adapt_note + cam_note
         )
 
     return True, (
         "Open Bamboo library installed successfully "
         f"({', '.join(SUPPORTED_SERIES)} series files). Please restart OrcaSlicer."
-        + cleanup_note + conf_note + obn_note + log_note + client_note + adapt_note
+        + cleanup_note + conf_note + obn_note + log_note + client_note + adapt_note + cam_note
     )
 
 def do_uninstall():
@@ -1032,6 +1081,8 @@ def do_uninstall():
             bundled_sidecar = bundled_sidecar_path(name)
             if os.path.exists(bundled_sidecar) and get_file_hash(extra) != get_file_hash(bundled_sidecar):
                 continue
+            if name == "BambuSource.dll":
+                register_bambu_source(pdir, register=False)
             try:
                 safe_remove(extra)
                 removed.append(name)
@@ -1116,12 +1167,18 @@ def do_restore_stock():
         for name in get_sidecar_names():
             cur = os.path.join(pdir, name)
             bak = cur + ".bak"
+            if name == "BambuSource.dll":
+                # The registered CLSID points at this path: drop our
+                # registration, then point it at whatever lands here.
+                register_bambu_source(pdir, register=False)
             if os.path.exists(bak):
                 try:
                     safe_copy(bak, cur)
                     restored_files.append(name)
                 except Exception:
                     pass
+                if name == "BambuSource.dll" and os.path.exists(cur):
+                    register_bambu_source(pdir)
                 continue
             bundled_sidecar = bundled_sidecar_path(name)
             if os.path.exists(cur) and os.path.exists(bundled_sidecar) \
@@ -1131,6 +1188,9 @@ def do_restore_stock():
                     restored_files.append(name)
                 except Exception:
                     pass
+            elif name == "BambuSource.dll" and os.path.exists(cur):
+                # A vendored OrcaSlicer copy stayed: point the CLSID at it.
+                register_bambu_source(pdir)
 
     return True, f"Restored original stock library ({', '.join(set(restored_files))})! Please restart OrcaSlicer."
 
