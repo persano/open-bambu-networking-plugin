@@ -109,9 +109,8 @@ Printers we have no confirmation for: X1E. It is not known to be broken, it is s
 - macOS Apple Silicon (arm64) - Library included
 
 ### OrcaSlicer Versions
-- OrcaSlicer 2.3.0 and newer
-- OrcaSlicer 2.4.0 official
-- OrcaSlicer 2.5.0 beta and nightly builds
+- OrcaSlicer v2.5.0 and newer (beta included) - plugin support was added in 2.5.0
+- OrcaSlicer v2.3.0+ - manual install only
 
 ---
 
