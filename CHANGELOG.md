@@ -2,6 +2,14 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.45 - 2026-11-03
+
+- New optional `cloud_print = cloud_for_makerworld_only` mode from ClusterM upstream (`8c2385a`): the library reads the sliced file and decides per print. A project carrying a MakerWorld model id (`DesignModelId`) is sent through the cloud like `cloud_only`, so MakerWorld records the print and the designer gets the credit and can be rated; anything else — your own models, test versions — prints like `lan_only` and leaves no cloud print history. The default stays `cloud_only`, existing modes are untouched, and the installer never rewrites an explicit `cloud_print` value: set it in `obn.conf` yourself to opt in.
+- Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `32e31a3` merges ClusterM master `3c66359` (3 commits on top of the 0.2.44 pin `c5f1592`). Libraries rebuilt from `32e31a3` on all three platforms, all three series (default 02.08.04, 02.08.01, 02.03.00). What reaches users:
+  - the `cloud_for_makerworld_only` mode above, with its config documentation in the shipped `obn.conf` template.
+  - 3MF model metadata handling extracted into `model_metadata.cpp` with a new unit-test suite (ClusterM `8c2385a`); research corpus and documentation typo/format fixes (ClusterM `01c36df`, `3c66359`).
+- Repo-side: the fork's baltobu cross-check blocks and the `update_cert` README note were kept through the merge, upstream's fixed section anchors adopted.
+
 ## 0.2.44 - 2026-11-02
 
 - Fixed a stale stop command cancelling a running print hours later (issue #9): after a LAN MQTT drop and reconnect, libmosquitto re-sent an unacknowledged QoS 1 `print.stop` from hours earlier (its outgoing in-flight queue survives reconnects even with `clean_session=true`), which killed a print at 81% with `print_error 50348044`. Printer request-topic commands now publish at QoS 0 in `LanSession::publish_json` and `CloudSession::publish`, so a command can never be delivered late; a command the printer missed is visible in its next status report instead. Reported with an analysed patch by the issue author, applied for both LAN and cloud sessions.

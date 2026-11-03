@@ -22,9 +22,9 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ c5f1592 (2026-11-02, "fix(mqtt): publish
-  printer request-topic commands at QoS 0"; merge of ClusterM/master
-  707d3b4 is 37de510)
+  persano/open-bamboo-networking @ 32e31a3 (2026-11-03, merges ClusterM
+  master 3c66359: `cloud_print = cloud_for_makerworld_only` mode, doc and
+  research fixes)
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 
