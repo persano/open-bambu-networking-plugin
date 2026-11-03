@@ -35,8 +35,8 @@ def build_wheel(whl_filename, platform_files):
     files["open_bambu_networking/__init__.py"] = code_data
     files["open_bambu_networking/open_bambu_networking.py"] = code_data
 
-    if os.path.exists("icon.png"):
-        with open("icon.png", "rb") as f:
+    if os.path.exists("assets/icon.png"):
+        with open("assets/icon.png", "rb") as f:
             files["open_bambu_networking/icon.png"] = f.read()
 
     if os.path.exists("CHANGELOG.md"):
@@ -83,11 +83,11 @@ def build_wheel(whl_filename, platform_files):
     print(f"Built {whl_filename}: {os.path.getsize(whl_filename):,} bytes (RECORD entries: {len(record_lines)})")
 
 def build_zip():
-    zip_filename = "open_bambu_networking_plugin.zip"
+    zip_filename = "dist/open_bambu_networking_plugin.zip"
     with zipfile.ZipFile(zip_filename, "w", compression=zipfile.ZIP_DEFLATED) as z:
         z.write("open_bambu_networking.py", "open_bambu_networking.py")
-        if os.path.exists("icon.png"):
-            z.write("icon.png", "icon.png")
+        if os.path.exists("assets/icon.png"):
+            z.write("assets/icon.png", "icon.png")
         if os.path.exists(".install_state.json"):
             z.write(".install_state.json", ".install_state.json")
         if os.path.exists("CHANGELOG.md"):
@@ -120,14 +120,16 @@ def build_platform_wheel(whl_filename, platform_dir):
     build_wheel(whl_filename, files)
 
 if __name__ == "__main__":
+    os.makedirs("dist", exist_ok=True)
+
     # 1. Windows x86_64
-    build_platform_wheel("open_bambu_networking_win_x86_64.whl", "bin/win_x64")
+    build_platform_wheel("dist/open_bambu_networking_win_x86_64.whl", "bin/win_x64")
 
     # 2. Linux x86_64
-    build_platform_wheel("open_bambu_networking_linux_x86_64.whl", "bin/linux_x64")
+    build_platform_wheel("dist/open_bambu_networking_linux_x86_64.whl", "bin/linux_x64")
 
     # 3. macOS arm64
-    build_platform_wheel("open_bambu_networking_macosx_arm64.whl", "bin/macos_arm64")
+    build_platform_wheel("dist/open_bambu_networking_macosx_arm64.whl", "bin/macos_arm64")
 
     # 4. Zip for manual installation
     build_zip()

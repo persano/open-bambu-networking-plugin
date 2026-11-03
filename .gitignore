@@ -4,10 +4,14 @@ __pycache__/
 *.bak
 .DS_Store
 Thumbs.db
-dist/
+dist/*
 build/
 *.egg-info/
 *.zip
+# built packages are committed so GitHub Releases and the publish
+# workflow can pick them up from dist/
+!dist/*.whl
+!dist/*.zip
 
 internal bugs/
 user reported bugs/
