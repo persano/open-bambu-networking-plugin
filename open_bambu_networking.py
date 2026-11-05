@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.45"
+# version = "0.2.46"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -35,7 +35,7 @@ import orca
 # download with "Bambu Network plug-in not detected". The installer therefore pins the series
 # and ships all of the ones OrcaSlicer accepts: 02.08.04 is the current latest (OrcaSlicer
 # PR #16202), 02.08.01 remains for builds whose whitelist predates it, 02.03.00 for configs
-# pinned to that series.
+# pinned to that series, 02.09.01 for configs migrated from Bambu Studio 02.09.01.
 INSTALL_SERIES = "02.08.04"
 SECONDARY_SERIES = "02.08.01"
 # OrcaSlicer configs pinned to 02.03.00 (migrated from Bambu Studio, or set
@@ -45,7 +45,12 @@ SECONDARY_SERIES = "02.08.01"
 # 02.03.00 removes fields (PrintParams_0203, bind without dev_model), and the
 # adaptive rename hands the older by-value layouts a Current-ABI library.
 V0203_SERIES = "02.03.00"
-SUPPORTED_SERIES = (INSTALL_SERIES, SECONDARY_SERIES, V0203_SERIES)
+# Configs migrated from Bambu Studio 02.09.01 bind only bambu_networking_02.09.01.*;
+# the series is append-only over 02.08.04 (minors query and error codes, no struct
+# layout change), so a real 02.09.01 build ships and the adaptive rename keeps
+# covering future series with the newest build.
+V0209_SERIES = "02.09.01"
+SUPPORTED_SERIES = (INSTALL_SERIES, SECONDARY_SERIES, V0203_SERIES, V0209_SERIES)
 LEGACY_SERIES = "01.10.01"
 VERSION_RE = re.compile(rb"0[12]\.\d{2}\.\d{2}\.\d{2}(?:\.\d{2})?")
 
@@ -315,9 +320,10 @@ def adaptive_series():
 
     Official OrcaSlicer drops old rows from AVAILABLE_NETWORK_VERSIONS and
     binds only the series it declares, so a future series leaves every
-    shipped file undetectable. The 02.08.04 ABI is append-only, so the same
-    build keeps working there: the installer copies it under the host's
-    series name and points the library's reported_version override at it.
+    shipped file undetectable. The newest ABI (02.09.01) is append-only, so
+    the same build keeps working there: the installer copies it under the
+    host's series name and points the library's reported_version override
+    at it.
     """
     series = series_of(read_slicer_config()["network_plugin_version"])
     if not SERIES_RE.match(series):
@@ -497,7 +503,8 @@ def get_status_dict():
     bundled_hash = get_file_hash(bundled)
     bundled_secondary_hash = get_file_hash(get_bundled_secondary_path())
     bundled_v0203_hash = get_file_hash(get_bundled_series_path(V0203_SERIES))
-    valid_hashes = {h for h in (bundled_hash, bundled_secondary_hash, bundled_v0203_hash) if h}
+    bundled_v0209_hash = get_file_hash(get_bundled_series_path(V0209_SERIES))
+    valid_hashes = {h for h in (bundled_hash, bundled_secondary_hash, bundled_v0203_hash, bundled_v0209_hash) if h}
 
     # Check if ANY active library across all plugin directories is Open Bamboo
     is_open_bamboo = False
@@ -869,11 +876,14 @@ def do_install():
 
     bundled_secondary = get_bundled_secondary_path()
     bundled_v0203 = get_bundled_series_path(V0203_SERIES)
+    bundled_v0209 = get_bundled_series_path(V0209_SERIES)
     bundled_hashes = {bundled: get_file_hash(bundled)}
     if bundled_secondary:
         bundled_hashes[bundled_secondary] = get_file_hash(bundled_secondary)
     if bundled_v0203:
         bundled_hashes[bundled_v0203] = get_file_hash(bundled_v0203)
+    if bundled_v0209:
+        bundled_hashes[bundled_v0209] = get_file_hash(bundled_v0209)
     prefix, suffix = get_lib_prefix_suffix()
     versioned_prefix = prefix + "_"
     host_series = adaptive_series()
@@ -893,8 +903,9 @@ def do_install():
 
         # Every series file is written: OrcaSlicer binds `_02.08.04` on builds
         # whose whitelist has PR #16202, `_02.08.01` on older ones, `_02.03.00`
-        # where the config is pinned to that series, and the unversioned
-        # default as a last fallback. Each series keeps its own build bytes.
+        # where the config is pinned to that series, `_02.09.01` where the config
+        # came from Bambu Studio 02.09.01, and the unversioned default as a last
+        # fallback. Each series keeps its own build bytes.
         targets_to_update = {
             os.path.join(pdir, f"{prefix}{suffix}"): bundled,
             os.path.join(pdir, f"{prefix}_{INSTALL_SERIES}{suffix}"): bundled,
@@ -903,11 +914,15 @@ def do_install():
             targets_to_update[os.path.join(pdir, f"{prefix}_{SECONDARY_SERIES}{suffix}")] = bundled_secondary
         if bundled_v0203:
             targets_to_update[os.path.join(pdir, f"{prefix}_{V0203_SERIES}{suffix}")] = bundled_v0203
+        if bundled_v0209:
+            targets_to_update[os.path.join(pdir, f"{prefix}_{V0209_SERIES}{suffix}")] = bundled_v0209
         # Adaptive file for a future series the host whitelists but this
         # release does not ship; the override below makes the library report
-        # that series so the slicer binds it.
+        # that series so the slicer binds it. The newest shipped build carries
+        # the widest append-only ABI, so it is the one to hand a future series.
+        adaptive_src = bundled_v0209 or bundled
         if host_series:
-            targets_to_update[os.path.join(pdir, f"{prefix}_{host_series}{suffix}")] = bundled
+            targets_to_update[os.path.join(pdir, f"{prefix}_{host_series}{suffix}")] = adaptive_src
 
         try:
             for f in os.listdir(pdir):
@@ -922,11 +937,14 @@ def do_install():
                 elif ver.startswith(V0203_SERIES):
                     if bundled_v0203:
                         targets_to_update[os.path.join(pdir, f)] = bundled_v0203
+                elif ver.startswith(V0209_SERIES):
+                    if bundled_v0209:
+                        targets_to_update[os.path.join(pdir, f)] = bundled_v0209
                 elif ver.startswith(INSTALL_SERIES):
                     targets_to_update[os.path.join(pdir, f)] = bundled
                 elif host_series and ver == host_series:
-                    targets_to_update[os.path.join(pdir, f)] = bundled
-                # Other 02.08.* series are left for the cleanup below to remove.
+                    targets_to_update[os.path.join(pdir, f)] = adaptive_src
+                # Other 02.08.* / 02.09.* series are left for the cleanup below to remove.
         except Exception:
             pass
 
@@ -960,7 +978,8 @@ def do_install():
                 series = f[len(versioned_prefix):-len(suffix)]
                 if series == host_series:
                     continue
-                if series.startswith("02.08.") and not any(series.startswith(s) for s in SUPPORTED_SERIES):
+                if ((series.startswith("02.08.") or series.startswith("02.09."))
+                        and not any(series.startswith(s) for s in SUPPORTED_SERIES)):
                     try:
                         safe_remove(os.path.join(pdir, f))
                         conflicting_removed.append(f)
@@ -1104,7 +1123,8 @@ def do_restore_stock():
     bundled_hash = get_file_hash(bundled)
     bundled_secondary_hash = get_file_hash(get_bundled_secondary_path())
     bundled_v0203_hash = get_file_hash(get_bundled_series_path(V0203_SERIES))
-    obn_hashes = {h for h in (bundled_hash, bundled_secondary_hash, bundled_v0203_hash) if h}
+    bundled_v0209_hash = get_file_hash(get_bundled_series_path(V0209_SERIES))
+    obn_hashes = {h for h in (bundled_hash, bundled_secondary_hash, bundled_v0203_hash, bundled_v0209_hash) if h}
 
     # First, locate any master stock backup across all plugin directories
     master_stock = ""

@@ -2,7 +2,14 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
-## 0.2.45 - 2026-11-03
+## 0.2.46 - 2026-11-05
+
+- New shipped series `02.09.01`: the installer now also writes a real `bambu_networking_02.09.01.*` build, for configs migrated from Bambu Studio 02.09.01 that bind only that series. It needs the matching `02.09.01` whitelist row (`NetworkAbi::Current`, append-only over 02.08.04) shipped in this workspace's OrcaSlicer fork; official OrcaSlicer builds without the row keep binding the series they already accept. Unsupported `02.09.*` leftovers are swept on install exactly like `02.08.*` ones.
+- The adaptive rename for a future host series now hands the newest shipped build (02.09.01) instead of the 02.08.04 default, since the ABI only grows.
+- Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `9c5dbbb` merges ClusterM master `95d42f8` "Support for ABI v02.09.01" (1 commit on top of the 0.2.45 pin `32e31a3`). Libraries rebuilt from `9c5dbbb` on all three platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00). What reaches users:
+  - `bambu_network_get_minors_decisions` and `bambu_network_get_child_registration_key` implemented against stock `02.09.01.54` behaviour (minors gate, `−61` / `−62` error codes), and the 14 `bambu_network_*_print_queue_*` stubs exported wherever stock exports them (ClusterM `95d42f8`). The default 02.08.04 build gains the print-queue stubs too; OrcaSlicer never calls them.
+  - New ABI snapshot `tools/abi_snapshot/v02.09.01` and tests (`minors_test`, `print_queue_stub_test`).
+- Repo-side: the fork's baltobu cross-check caution block in `research/08.16-errors.md` was kept through the merge, upstream's `−61/−62` versioned-additions line adopted.
 
 - New optional `cloud_print = cloud_for_makerworld_only` mode from ClusterM upstream (`8c2385a`): the library reads the sliced file and decides per print. A project carrying a MakerWorld model id (`DesignModelId`) is sent through the cloud like `cloud_only`, so MakerWorld records the print and the designer gets the credit and can be rated; anything else — your own models, test versions — prints like `lan_only` and leaves no cloud print history. The default stays `cloud_only`, existing modes are untouched, and the installer never rewrites an explicit `cloud_print` value: set it in `obn.conf` yourself to opt in.
 - Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `32e31a3` merges ClusterM master `3c66359` (3 commits on top of the 0.2.44 pin `c5f1592`). Libraries rebuilt from `32e31a3` on all three platforms, all three series (default 02.08.04, 02.08.01, 02.03.00). What reaches users:

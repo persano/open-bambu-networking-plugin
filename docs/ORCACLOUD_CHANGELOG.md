@@ -1,3 +1,8 @@
+## 0.2.46 - 2026-11-05
+
+- Added the `02.09.01` network plug-in series for setups whose configuration came from Bambu Studio 02.09.01, so that configuration binds Open Bamboo instead of looping on "Bambu Network plug-in not detected". This needs an OrcaSlicer build that whitelists `02.09.01` (the open-bamboo fork ships that row); other builds keep binding the series they already accept.
+- Synced with ClusterM upstream: support for Bambu Studio 02.09.01's plug-in ABI (minor-account restrictions API, print-queue stubs). No config change needed on your side.
+
 ## 0.2.45 - 2026-11-03
 
 - New optional setting `cloud_print = cloud_for_makerworld_only` in `obn.conf`, from the upstream project: prints of files downloaded from MakerWorld still go through the cloud, so the model designer gets the print credit, while your own models print locally and leave no cloud print history. The default is unchanged (`cloud_only`); set the value yourself if you want it.

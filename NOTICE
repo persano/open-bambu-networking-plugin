@@ -6,8 +6,8 @@ licensed under GNU GPL v3 (see LICENSE).
 
 The precompiled native libraries shipped in bin/ and inside the wheels and
 plugin zip (bambu_networking.dll / libbambu_networking.so /
-libbambu_networking.dylib, BambuSource.*, liblive555.*, and their 02.08.01
-and 02.03.00 variants) are NOT written by the author of this plugin. They are built from:
+libbambu_networking.dylib, BambuSource.*, liblive555.*, and their 02.09.01,
+02.08.01 and 02.03.00 variants) are NOT written by the author of this plugin. They are built from:
 
   Upstream project:  https://github.com/ClusterM/open-bamboo-networking
                      Copyright (C) 2026 Alexey Cluster and contributors
@@ -22,9 +22,8 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ 32e31a3 (2026-11-03, merges ClusterM
-  master 3c66359: `cloud_print = cloud_for_makerworld_only` mode, doc and
-  research fixes)
+  persano/open-bamboo-networking @ 9c5dbbb (2026-11-05, merges ClusterM
+  master 95d42f8: `Support for ABI v02.09.01`)
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 
