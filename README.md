@@ -6,7 +6,7 @@
 
 # Open Bamboo Networking Plugin for OrcaSlicer
 
-[![Release](https://img.shields.io/badge/release-v0.2.47-blue.svg)](https://github.com/persano/open-bambu-networking-plugin/releases)
+[![Release](https://img.shields.io/badge/release-v0.2.48-blue.svg)](https://github.com/persano/open-bambu-networking-plugin/releases)
 [![License: GPL v3 (installer) / AGPL v3 (native libs)](https://img.shields.io/badge/License-GPLv3%20%2F%20AGPLv3-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)]()
 [![OrcaCloud](https://img.shields.io/badge/OrcaCloud-Plugin%20Hub-teal.svg)](https://cloud.orcaslicer.com/app/plugins/shared-plugins/5d35283e-0378-474d-8d3a-6d8f718fddeb)
@@ -59,7 +59,7 @@ The pre-compiled binaries distributed inside this plugin (`bambu_networking.dll`
 - **AMS slot sync**: Keeps multi-color filament slots mapped properly on cloud dispatch.
 - **In-slicer interface**: Adds an "Open Bamboo" tab right in OrcaSlicer with live library status and 1 click install or rollback.
 - **Clean startup**: No security prompts or permission alerts when opening OrcaSlicer.
-- **Cross platform**: Pre-compiled libraries included for Windows (x64), Linux (x64 and arm64), and macOS (Apple Silicon arm64).
+- **Cross platform**: Pre-compiled libraries included for Windows (x64 and arm64), Linux (x64 and arm64), and macOS (Apple Silicon arm64 and Intel x64).
 
 ---
 
@@ -105,9 +105,11 @@ Printers we have no confirmation for: X1E. It is not known to be broken, it is s
 
 ### Operating Systems
 - Windows 10 and 11 (x64) - Tested and verified
+- Windows 10 and 11 (arm64) - Library included since 0.2.48
 - Linux (x64) - Library included
 - Linux (arm64 / aarch64, e.g. Qualcomm Snapdragon laptops) - Library included since 0.2.47
 - macOS Apple Silicon (arm64) - Library included
+- macOS Intel (x64) - Library included since 0.2.48
 
 ### OrcaSlicer Versions
 - OrcaSlicer v2.5.0 and newer (beta included) - plugin support was added in 2.5.0

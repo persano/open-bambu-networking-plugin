@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.47"
+# version = "0.2.48"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -142,19 +142,28 @@ def get_default_target_path():
     prefix, suffix = get_lib_prefix_suffix()
     return os.path.join(primary, f"{prefix}{suffix}")
 
-def get_linux_arch_dir():
-    """bin/ dir for this machine's Linux arch: linux_arm64 or linux_x64."""
+def get_platform_bin_dir():
+    """bin/ dir for this machine's os/arch: win_x64, win_arm64, macos_arm64,
+    macos_x64, linux_arm64 or linux_x64."""
     import platform
-    return "linux_arm64" if platform.machine() in ("aarch64", "arm64") else "linux_x64"
+    if sys.platform.startswith("win"):
+        os_name = "win"
+    elif sys.platform == "darwin":
+        os_name = "macos"
+    else:
+        os_name = "linux"
+    arch = "arm64" if platform.machine().lower() in ("aarch64", "arm64") else "x64"
+    return f"{os_name}_{arch}"
 
 def get_bundled_plugin_path():
     plugin_root = os.path.dirname(os.path.abspath(__file__))
+    bin_dir = get_platform_bin_dir()
     if sys.platform.startswith("win"):
-        return os.path.join(plugin_root, "bin", "win_x64", "bambu_networking.dll")
+        return os.path.join(plugin_root, "bin", bin_dir, "bambu_networking.dll")
     elif sys.platform.startswith("linux"):
-        return os.path.join(plugin_root, "bin", get_linux_arch_dir(), "libbambu_networking.so")
+        return os.path.join(plugin_root, "bin", bin_dir, "libbambu_networking.so")
     elif sys.platform == "darwin":
-        return os.path.join(plugin_root, "bin", "macos_arm64", "libbambu_networking.dylib")
+        return os.path.join(plugin_root, "bin", bin_dir, "libbambu_networking.dylib")
     return ""
 
 def get_bundled_series_path(series):

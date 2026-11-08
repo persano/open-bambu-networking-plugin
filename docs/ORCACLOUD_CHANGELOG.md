@@ -1,3 +1,8 @@
+## 0.2.48 - 2026-11-08
+
+- New Windows arm64 and macOS Intel (x86_64) builds, each shipping the same four series as the other platforms (default 02.08.04, 02.09.01, 02.08.01, 02.03.00), plus `open_bambu_networking_win_arm64.whl` and `open_bambu_networking_macosx_x86_64.whl`. Fixes "No plugin package is available for this operating system" on Windows on ARM and Intel Macs.
+- The installer picks the bundled library by the machine's os and architecture instead of assuming Windows x64 and Apple Silicon.
+
 ## 0.2.47 - 2026-11-08
 
 - New Linux arm64 (aarch64) build: the plug-in now ships its libraries for Linux on ARM (Qualcomm Snapdragon laptops and similar), so install no longer fails with "No plugin package is available for this operating system". No config change needed on your side.

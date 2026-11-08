@@ -24,6 +24,9 @@ any work derived from them.
 Source revision the shipped binaries were built from:
   persano/open-bamboo-networking @ 9c5dbbb (2026-11-05, merges ClusterM
   master 95d42f8: `Support for ABI v02.09.01`)
+  The macOS Intel binaries come from @ e7db84b, which differs from 9c5dbbb
+  only in .github/workflows/build.yml (enables the Intel job); the library
+  source is identical.
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 

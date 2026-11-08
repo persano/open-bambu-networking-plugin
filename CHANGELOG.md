@@ -2,6 +2,12 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.48 - 2026-11-08
+
+- New Windows arm64 build: `bin/win_arm64/` with the same four series as the other platforms (default 02.08.04, 02.09.01, 02.08.01, 02.03.00), built from persano/open-bamboo-networking `9c5dbbb` by the fork's Build workflow on `windows-11-arm`, plus `open_bambu_networking_win_arm64.whl`.
+- New macOS Intel (x86_64) build: `bin/macos_x64/`, same four series, from persano/open-bamboo-networking `e7db84b` (same source as `9c5dbbb`, workflow-only change) on `macos-latest-large` - the previously commented-out Intel job in the fork's Build workflow is enabled and wired into the package job - plus `open_bambu_networking_macosx_x86_64.whl`. Fixes "No plugin package is available for this operating system" on Windows on ARM and Intel Macs.
+- The installer picks the bundled library by os/arch (`get_platform_bin_dir()`: win/macos/linux x arm64/x64) instead of hardcoding `win_x64` and `macos_arm64`.
+
 ## 0.2.47 - 2026-11-08
 
 - New Linux arm64 (aarch64) build: `bin/linux_arm64/` with the same four series as the other platforms (default 02.08.04, 02.09.01, 02.08.01, 02.03.00), built from persano/open-bamboo-networking `9c5dbbb` by the fork's Build workflow on `ubuntu-24.04-arm`, plus `open_bambu_networking_linux_arm64.whl`. Fixes "No plugin package is available for this operating system" on Linux arm64 hosts (e.g. Qualcomm Snapdragon laptops).
