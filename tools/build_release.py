@@ -128,9 +128,10 @@ if __name__ == "__main__":
     # 2. Linux x86_64
     build_platform_wheel("dist/open_bambu_networking_linux_x86_64.whl", "bin/linux_x64")
 
-    # 2b. Linux arm64 (aarch64)
+    # 2b. Linux arm64 (aarch64); OrcaCloud's filename gate accepts
+    # linux_arm64 (arch token must match platform_architecture(), "arm64").
     if os.path.isdir("bin/linux_arm64"):
-        build_platform_wheel("dist/open_bambu_networking_linux_aarch64.whl", "bin/linux_arm64")
+        build_platform_wheel("dist/open_bambu_networking_linux_arm64.whl", "bin/linux_arm64")
 
     # 3. macOS arm64
     build_platform_wheel("dist/open_bambu_networking_macosx_arm64.whl", "bin/macos_arm64")
