@@ -3,7 +3,7 @@ import zipfile
 import hashlib
 import base64
 
-VERSION = "0.2.46"
+VERSION = "0.2.47"
 DIST_INFO = f"open_bambu_networking-{VERSION}.dist-info"
 
 METADATA_CONTENT = f"""Metadata-Version: 2.1
@@ -127,6 +127,10 @@ if __name__ == "__main__":
 
     # 2. Linux x86_64
     build_platform_wheel("dist/open_bambu_networking_linux_x86_64.whl", "bin/linux_x64")
+
+    # 2b. Linux arm64 (aarch64)
+    if os.path.isdir("bin/linux_arm64"):
+        build_platform_wheel("dist/open_bambu_networking_linux_aarch64.whl", "bin/linux_arm64")
 
     # 3. macOS arm64
     build_platform_wheel("dist/open_bambu_networking_macosx_arm64.whl", "bin/macos_arm64")

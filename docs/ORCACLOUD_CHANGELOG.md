@@ -1,3 +1,7 @@
+## 0.2.47 - 2026-11-08
+
+- New Linux arm64 (aarch64) build: the plug-in now ships its libraries for Linux on ARM (Qualcomm Snapdragon laptops and similar), so install no longer fails with "No plugin package is available for this operating system". No config change needed on your side.
+
 ## 0.2.46 - 2026-11-05
 
 - Added the `02.09.01` network plug-in series for setups whose configuration came from Bambu Studio 02.09.01, so that configuration binds Open Bamboo instead of looping on "Bambu Network plug-in not detected". This needs an OrcaSlicer build that whitelists `02.09.01` (the open-bamboo fork ships that row); other builds keep binding the series they already accept.

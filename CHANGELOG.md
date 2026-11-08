@@ -2,6 +2,11 @@
 
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.47 - 2026-11-08
+
+- New Linux arm64 (aarch64) build: `bin/linux_arm64/` with the same four series as the other platforms (default 02.08.04, 02.09.01, 02.08.01, 02.03.00), built from persano/open-bamboo-networking `9c5dbbb` by the fork's Build workflow on `ubuntu-24.04-arm`, plus `open_bambu_networking_linux_aarch64.whl`. Fixes "No plugin package is available for this operating system" on Linux arm64 hosts (e.g. Qualcomm Snapdragon laptops).
+- The installer picks the bundled library by `platform.machine()` instead of assuming every Linux is x64, and the status page reports the real architecture (`arm64` / `x86_64` / `x86`) instead of `x64`/`x86` from pointer size.
+
 ## 0.2.46 - 2026-11-05
 
 - New shipped series `02.09.01`: the installer now also writes a real `bambu_networking_02.09.01.*` build, for configs migrated from Bambu Studio 02.09.01 that bind only that series. It needs the matching `02.09.01` whitelist row (`NetworkAbi::Current`, append-only over 02.08.04) shipped in this workspace's OrcaSlicer fork; official OrcaSlicer builds without the row keep binding the series they already accept. Unsupported `02.09.*` leftovers are swept on install exactly like `02.08.*` ones.

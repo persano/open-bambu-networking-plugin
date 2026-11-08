@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.46"
+# version = "0.2.47"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -60,6 +60,17 @@ def get_os_name():
     elif sys.platform == "darwin":
         return "macOS"
     return "Linux"
+
+def get_arch_name():
+    import platform
+    m = platform.machine().lower()
+    if m in ("aarch64", "arm64"):
+        return "arm64"
+    if m in ("x86_64", "amd64"):
+        return "x86_64"
+    if m in ("i386", "i486", "i586", "i686", "x86"):
+        return "x86"
+    return m or "unknown"
 
 def get_lib_prefix_suffix():
     if sys.platform.startswith("win"):
@@ -131,12 +142,17 @@ def get_default_target_path():
     prefix, suffix = get_lib_prefix_suffix()
     return os.path.join(primary, f"{prefix}{suffix}")
 
+def get_linux_arch_dir():
+    """bin/ dir for this machine's Linux arch: linux_arm64 or linux_x64."""
+    import platform
+    return "linux_arm64" if platform.machine() in ("aarch64", "arm64") else "linux_x64"
+
 def get_bundled_plugin_path():
     plugin_root = os.path.dirname(os.path.abspath(__file__))
     if sys.platform.startswith("win"):
         return os.path.join(plugin_root, "bin", "win_x64", "bambu_networking.dll")
     elif sys.platform.startswith("linux"):
-        return os.path.join(plugin_root, "bin", "linux_x64", "libbambu_networking.so")
+        return os.path.join(plugin_root, "bin", get_linux_arch_dir(), "libbambu_networking.so")
     elif sys.platform == "darwin":
         return os.path.join(plugin_root, "bin", "macos_arm64", "libbambu_networking.dylib")
     return ""
@@ -577,7 +593,7 @@ def get_status_dict():
         "target_size_kb": round(target_size / 1024, 1),
         "bundled_size_kb": round(bundled_size / 1024, 1),
         "os": get_os_name(),
-        "arch": "x64" if sys.maxsize > 2**32 else "x86"
+        "arch": get_arch_name()
     }
 
 def _native_conf_call(fn_name, conf_path):
@@ -1287,7 +1303,7 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
             "target_size_kb": 0,
             "bundled_size_kb": 0,
             "os": get_os_name(),
-            "arch": "x64" if sys.maxsize > 2**32 else "x86",
+            "arch": get_arch_name(),
             "initial": True
         }
         status_json = json.dumps(default_status)
