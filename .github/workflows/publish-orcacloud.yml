@@ -59,6 +59,11 @@ jobs:
           if [ -z "$changelog" ]; then
             changelog="Automated release from GitHub"
           fi
+          # OrcaCloud shows its own version/date chip above the changelog, so
+          # the payload must not repeat the "## x.y.z - date" heading. Strip
+          # level-2 headings only; the "### Added/Changed/Fixed" subsections
+          # (level 3) stay - "^## " does not match "### ".
+          changelog="$(printf '%s\n' "$changelog" | sed '/^## /d')"
           changelog="$(echo "$changelog" | head -c 4000)"
           metadata="$(jq -cn --arg version "$version" --arg changelog "$changelog" \
             '{version: $version} + (if $changelog == "" then {} else {changelog: $changelog} end)')"

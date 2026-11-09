@@ -1,28 +1,41 @@
 # Changelog
-
 All notable changes to Open Bamboo Networking are documented in this file.
 
 ## 0.2.48 - 2026-11-08
 
+### Added
 - New Windows arm64 build: `bin/win_arm64/` with the same four series as the other platforms (default 02.08.04, 02.09.01, 02.08.01, 02.03.00), built from persano/open-bamboo-networking `9c5dbbb` by the fork's Build workflow on `windows-11-arm`, plus `open_bambu_networking_win_arm64.whl`.
 - New macOS Intel (x86_64) build: `bin/macos_x64/`, same four series, from persano/open-bamboo-networking `e7db84b` (same source as `9c5dbbb`, workflow-only change) on `macos-latest-large` - the previously commented-out Intel job in the fork's Build workflow is enabled and wired into the package job - plus `open_bambu_networking_macosx_x86_64.whl`. Fixes "No plugin package is available for this operating system" on Windows on ARM and Intel Macs.
+
+### Changed
 - The installer picks the bundled library by os/arch (`get_platform_bin_dir()`: win/macos/linux x arm64/x64) instead of hardcoding `win_x64` and `macos_arm64`.
 
 ## 0.2.47 - 2026-11-08
 
+### Added
 - New Linux arm64 (aarch64) build: `bin/linux_arm64/` with the same four series as the other platforms (default 02.08.04, 02.09.01, 02.08.01, 02.03.00), built from persano/open-bamboo-networking `9c5dbbb` by the fork's Build workflow on `ubuntu-24.04-arm`, plus `open_bambu_networking_linux_arm64.whl`. Fixes "No plugin package is available for this operating system" on Linux arm64 hosts (e.g. Qualcomm Snapdragon laptops).
+
+### Changed
 - The installer picks the bundled library by `platform.machine()` instead of assuming every Linux is x64, and the status page reports the real architecture (`arm64` / `x86_64` / `x86`) instead of `x64`/`x86` from pointer size.
 
 ## 0.2.46 - 2026-11-05
 
+### Added
 - New shipped series `02.09.01`: the installer now also writes a real `bambu_networking_02.09.01.*` build, for configs migrated from Bambu Studio 02.09.01 that bind only that series. It needs the matching `02.09.01` whitelist row (`NetworkAbi::Current`, append-only over 02.08.04) shipped in this workspace's OrcaSlicer fork; official OrcaSlicer builds without the row keep binding the series they already accept. Unsupported `02.09.*` leftovers are swept on install exactly like `02.08.*` ones.
+
+### Changed
 - The adaptive rename for a future host series now hands the newest shipped build (02.09.01) instead of the 02.08.04 default, since the ABI only grows.
 - Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `9c5dbbb` merges ClusterM master `95d42f8` "Support for ABI v02.09.01" (1 commit on top of the 0.2.45 pin `32e31a3`). Libraries rebuilt from `9c5dbbb` on all three platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00). What reaches users:
   - `bambu_network_get_minors_decisions` and `bambu_network_get_child_registration_key` implemented against stock `02.09.01.54` behaviour (minors gate, `−61` / `−62` error codes), and the 14 `bambu_network_*_print_queue_*` stubs exported wherever stock exports them (ClusterM `95d42f8`). The default 02.08.04 build gains the print-queue stubs too; OrcaSlicer never calls them.
   - New ABI snapshot `tools/abi_snapshot/v02.09.01` and tests (`minors_test`, `print_queue_stub_test`).
 - Repo-side: the fork's baltobu cross-check caution block in `research/08.16-errors.md` was kept through the merge, upstream's `−61/−62` versioned-additions line adopted.
 
+## 0.2.45 - 2026-11-03
+
+### Added
 - New optional `cloud_print = cloud_for_makerworld_only` mode from ClusterM upstream (`8c2385a`): the library reads the sliced file and decides per print. A project carrying a MakerWorld model id (`DesignModelId`) is sent through the cloud like `cloud_only`, so MakerWorld records the print and the designer gets the credit and can be rated; anything else — your own models, test versions — prints like `lan_only` and leaves no cloud print history. The default stays `cloud_only`, existing modes are untouched, and the installer never rewrites an explicit `cloud_print` value: set it in `obn.conf` yourself to opt in.
+
+### Changed
 - Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `32e31a3` merges ClusterM master `3c66359` (3 commits on top of the 0.2.44 pin `c5f1592`). Libraries rebuilt from `32e31a3` on all three platforms, all three series (default 02.08.04, 02.08.01, 02.03.00). What reaches users:
   - the `cloud_for_makerworld_only` mode above, with its config documentation in the shipped `obn.conf` template.
   - 3MF model metadata handling extracted into `model_metadata.cpp` with a new unit-test suite (ClusterM `8c2385a`); research corpus and documentation typo/format fixes (ClusterM `01c36df`, `3c66359`).
@@ -30,15 +43,19 @@ All notable changes to Open Bamboo Networking are documented in this file.
 
 ## 0.2.44 - 2026-11-02
 
-- Fixed a stale stop command cancelling a running print hours later (issue #9): after a LAN MQTT drop and reconnect, libmosquitto re-sent an unacknowledged QoS 1 `print.stop` from hours earlier (its outgoing in-flight queue survives reconnects even with `clean_session=true`), which killed a print at 81% with `print_error 50348044`. Printer request-topic commands now publish at QoS 0 in `LanSession::publish_json` and `CloudSession::publish`, so a command can never be delivered late; a command the printer missed is visible in its next status report instead. Reported with an analysed patch by the issue author, applied for both LAN and cloud sessions.
-- Fixed the camera staying black on Windows until `BambuSource.dll` was registered by hand (issue #8): the installer now calls the filter's `DllRegisterServer` (HKCU, no administrator needed) after copying it, which is the registration OrcaSlicer only performs when it copies the network plug-in itself. Uninstall and Restore stock call `DllUnregisterServer` and re-point the CLSID at whatever file remains. The install message says when registration ran.
+### Changed
 - Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `c5f1592` merges ClusterM master `707d3b4` (6 commits on top of the 0.2.43 pin `b14f880`). Libraries rebuilt from `c5f1592` on all three platforms, all three series (default 02.08.04, 02.08.01, 02.03.00). What reaches users:
   - **Covers for prints started on the printer's screen or over LAN**: cover fetching matches the uploaded 3MF's model file by its title and takes the print cover from the 3MF (ClusterM #138, #140, `e51e6c0`, `707d3b4`).
   - **SSDP start failure leaves no stale state**: a worker-thread creation failure now cleans up `start()` state instead of wedging discovery (ClusterM #143 `0330c88`).
   - Research corpus refreshed (ClusterM `082a81e`).
 
+### Fixed
+- Fixed a stale stop command cancelling a running print hours later (issue #9): after a LAN MQTT drop and reconnect, libmosquitto re-sent an unacknowledged QoS 1 `print.stop` from hours earlier (its outgoing in-flight queue survives reconnects even with `clean_session=true`), which killed a print at 81% with `print_error 50348044`. Printer request-topic commands now publish at QoS 0 in `LanSession::publish_json` and `CloudSession::publish`, so a command can never be delivered late; a command the printer missed is visible in its next status report instead. Reported with an analysed patch by the issue author, applied for both LAN and cloud sessions.
+- Fixed the camera staying black on Windows until `BambuSource.dll` was registered by hand (issue #8): the installer now calls the filter's `DllRegisterServer` (HKCU, no administrator needed) after copying it, which is the registration OrcaSlicer only performs when it copies the network plug-in itself. Uninstall and Restore stock call `DllUnregisterServer` and re-point the CLSID at whatever file remains. The install message says when registration ran.
+
 ## 0.2.43 - 2026-10-26
 
+### Changed
 - Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `b14f880` merges ClusterM master `e972aac` (23 commits on top of the 0.2.42 pin `85c2b52`). Libraries rebuilt from `b14f880` on all three platforms, all three series (default 02.08.04, 02.08.01, 02.03.00). What reaches users:
   - **SD card prints on secured printers**: `bambu_network_start_sdcard_print` now sends the project file `url` built from `dst_file`, so the firmware's file verify (`err_code 84033544`) gets the `url_enc` the signing path produces instead of a project file without url (ClusterM `160b667`).
   - **SSDP shutdown race**: `Discovery::stop()` joins its listener thread before returning (ClusterM #132), so closing discovery no longer races the thread.
@@ -50,75 +67,104 @@ All notable changes to Open Bamboo Networking are documented in this file.
 
 ## 0.2.42 - 2026-10-22
 
+### Fixed
 - Fixed prints failing with HTTP 403 and the "Network Plug-in Restriction" dialog on OrcaSlicer builds whose config is pinned to network plug-in series 02.03.00 (report from an H2C on Windows 11, OrcaSlicer 2.5.0-alpha build `3880f2c5`): OrcaSlicer binds only the file for its configured series, so it loaded the official stock `bambu_networking_02.03.00.dll` and never the Open Bamboo library. That is why every cloud print got 403, LAN and Developer mode showed as unavailable, no `obn.log` was ever created, and the stock library crashed the app three times with an access violation. The plugin now ships a real 02.03.00 series library built from the same source: with `OBN_VERSION=02.03.00.99` the `dev_model` bind parameter and the post-02.03 `PrintParams` fields compile out behind their `#if ABI_VERSION >=` guards, which is exactly the `NetworkAbi::V0203` layout and signature OrcaSlicer dispatches for that series. It installs as `bambu_networking_02.03.00.*` next to the other two, so a 02.03.00-pinned config binds the Open Bamboo library with no config edit. The adaptive rename deliberately stays off that series: it can only reuse the current build for series that add fields, and 02.03.00 removes them. Libraries rebuilt from open-bamboo-networking `85c2b52` on all three platforms.
 
 ## 0.2.41 - 2026-10-21
 
+### Fixed
 - Fixed cloud print failing with HTTP 403 and no camera feed on OrcaSlicer builds that block the plugin from its own config file (report from an A1 on Windows 11, OrcaSlicer 2.5.0-alpha): when OrcaSlicer's plugin audit denies the installer all access to `obn.conf`, the `client_name` rewrite and the `log_to_file` default were skipped, so a stale `client_name = OpenBambooNetworking` made the cloud answer 403 on print registration and on the camera mint with no `obn.log` to diagnose it. The installer now applies `block_cloud`, `log_to_file` and `client_name` through the library in a single call that runs outside the audit hook, so prints work without any hand-editing of `obn.conf` and `obn.log` exists for the next report. A config file created fresh at install time now gets `log_to_file = 1`, matching what the installer writes when OrcaSlicer allows the file. Explicit user values are still never touched. Libraries rebuilt from open-bamboo-networking `85c2b52` on all three platforms.
 
 ## 0.2.40 - 2026-10-20
 
+### Fixed
 - Fixed cloud print failing with error -3120 on H2D printers (issue #6 and the OrcaCloud comments): `POST /v1/user-service/my/task` answered HTTP 403 to the bearer-only request on every region, and the `mytask_pop = auto` default only attached the proof-of-possession header pair on the CN cloud. The plugin now retries that call once with the pair attached whenever the first attempt comes back 403, so H2D printers print without any config edit. Explicit `mytask_pop = 1` / `0` in `obn.conf` still win on the first attempt, and every printer that worked before sends the exact same first request. Libraries rebuilt from open-bamboo-networking `8979ec3` on all three platforms.
 
 ## 0.2.39 - 2026-10-19
 
+### Added
 - Added the compliance disclaimer (issue #7): README and OrcaCloud page now say the bundled library embeds credentials that are not yours and that you alone are responsible for ensuring your use complies with the applicable terms and law. That warning previously existed only in the upstream fork readme.
+
+### Changed
 - `extract_key_from_dump.py` is now credited to ClusterM/open-bamboo-networking and its contributors, at the script author's request that he not be named or linked.
 
 ## 0.2.38 - 2026-10-19
 
+### Changed
 - Attribution and licensing corrections after issue #7: the README, OrcaCloud page, and plugin description now state up front that this plugin is an installer around [ClusterM/open-bamboo-networking](https://github.com/ClusterM/open-bamboo-networking) and link [sponsors for the upstream author](https://github.com/sponsors/ClusterM).
 - Dropped the "clean room" claims. The bundled library embeds a Bambu Lab application client secret to auto-fetch signing certificates, so it is not a clean-room implementation and is no longer described as one.
 - Every package (plugin zip and all three wheels) now ships the full AGPL-3.0 license text (`LICENSE.AGPL`) plus a `NOTICE` naming the upstream projects, the AGPL-3.0 terms that cover the bundled binaries, and the exact source revision they are built from. The repository license badge now reads GPL v3 (installer) / AGPL v3 (native libs).
 
 ## 0.2.37 - 2026-10-19
 
-- Linux installs now honor `XDG_CONFIG_HOME` when locating the OrcaSlicer data directory (issue #5). On Flatpak builds OrcaSlicer reads its config from `~/.var/app/<app-id>/config/OrcaSlicer`, while the installer hardcoded `~/.config/OrcaSlicer`, so every library copy landed in a directory the slicer never loads from.
+### Changed
 - The "run OrcaSlicer as administrator" install hint now only appears on Windows; Linux and macOS get a folder-permissions message instead.
+
+### Fixed
+- Linux installs now honor `XDG_CONFIG_HOME` when locating the OrcaSlicer data directory (issue #5). On Flatpak builds OrcaSlicer reads its config from `~/.var/app/<app-id>/config/OrcaSlicer`, while the installer hardcoded `~/.config/OrcaSlicer`, so every library copy landed in a directory the slicer never loads from.
 
 ## 0.2.36 - 2026-10-18
 
+### Changed
 - The installer's `obn.conf` fixes (the 0.2.35 `client_name` rewrite and the `log_to_file` default) now tell you when OrcaSlicer's plugin permission system blocked the access, instead of skipping silently. Stock OrcaSlicer asks permission before a plugin may touch files outside its folder; if that prompt is denied or never answered, cloud prints keep answering HTTP 403 and the install message previously gave no hint. The message now names the manual one-line fix (`client_name = BambuStudio`) and mentions the permission prompt to allow on the next install.
 
 ## 0.2.35 - 2026-10-17
 
+### Fixed
 - Fixed "a1mini can't print" (issue #4): an `obn.conf` created by an installer older than 0.2.28 carries `client_name = OpenBambooNetworking`, and `POST /v1/user-service/my/task` answers HTTP 403 `The client does not have access rights to the content.` for any client name that is not the stock `BambuStudio`. The reporter's `obn.log` shows both the warning (`create_task X-BBL-Client-Name=OpenBambooNetworking is not BambuStudio`) and the 403, while control, status and camera all keep working. The installer now rewrites that one stale value to `BambuStudio`, leaving any other `client_name` the user picked untouched; if the slicer's audit blocks the write, the install message asks for the one-line edit instead.
 
 ## 0.2.34 - 2026-10-16
 
-- Fixed the Copy Path button doing nothing (user report: A1 mini, Orca 2.5.0-dev). The page loaded with an empty path until a status refresh, and in that state `copyPath()` returned silently; `navigator.clipboard` is also missing in some webview contexts, and `writeText` can reject. The status page now ships the active library path at load, the button refreshes status when the path is still empty, clipboard failures fall back to showing the path in the alert, and every outcome gives visible feedback instead of a silent no-op.
+### Changed
 - The installer now defaults `obn.conf` to `log_to_file = 1` when the key is absent, so `obn.log` (same folder as `obn.conf`) exists out of the box for bug reports. Without it the native library logs to stderr only, which OrcaSlicer drops, which is why the "print sent but the printer never starts" reports (P1P, A1 mini, Orca 2.5.0-dev) arrived with no logs to diagnose. An explicit `log_to_file` line (including `= 0`) is kept untouched; on slicer builds whose plugin audit denies the `obn.conf` write the install message asks for the one-line manual edit instead. The status page also shows the `obn.log` path and whether the file exists yet.
+
+### Fixed
+- Fixed the Copy Path button doing nothing (user report: A1 mini, Orca 2.5.0-dev). The page loaded with an empty path until a status refresh, and in that state `copyPath()` returned silently; `navigator.clipboard` is also missing in some webview contexts, and `writeText` can reject. The status page now ships the active library path at load, the button refreshes status when the path is still empty, clipboard failures fall back to showing the path in the alert, and every outcome gives visible feedback instead of a silent no-op.
 
 ## 0.2.33 - 2026-10-12
 
-- The platform identity is now automatic. When `obn.conf` carries no `cloud_os_type`, `bbl_headers()` reads the platform from the signing leaf itself (`platform_for_leaf_pem()`, windows for the `-eed1e0410000` leaf, linux for `-836763c70000`) and only reaches for the host OS when there is no certificate at all. Our embedded `client_auth_secret` is the Windows one, so `bambu_network_update_cert` fetches the Windows leaf on every OS, which means macOS and Linux clients now present `windows` on their own: the header that answered HTTP 403 on the ttcode mint and, with PoP attached, on `/my/task`. A hand placed linux chain keeps reporting linux, and an explicit `cloud_os_type` still beats both. From open-bamboo-networking `da9d91f`. New `test_platform_for_leaf_pem` (leaf mapping, unknown identity, two block chain) plus a planted `slicer_cert.pem` case in `test_cloud_platform_headers`; 33/33 green on the macOS CI run of that commit, and the same suite passes on a local Windows build.
+### Changed
 - Libraries rebuilt from open-bamboo-networking `da9d91f` on all three platforms, still at `02.08.04.99` / `02.08.01.99`.
+
+### Fixed
+- The platform identity is now automatic. When `obn.conf` carries no `cloud_os_type`, `bbl_headers()` reads the platform from the signing leaf itself (`platform_for_leaf_pem()`, windows for the `-eed1e0410000` leaf, linux for `-836763c70000`) and only reaches for the host OS when there is no certificate at all. Our embedded `client_auth_secret` is the Windows one, so `bambu_network_update_cert` fetches the Windows leaf on every OS, which means macOS and Linux clients now present `windows` on their own: the header that answered HTTP 403 on the ttcode mint and, with PoP attached, on `/my/task`. A hand placed linux chain keeps reporting linux, and an explicit `cloud_os_type` still beats both. From open-bamboo-networking `da9d91f`. New `test_platform_for_leaf_pem` (leaf mapping, unknown identity, two block chain) plus a planted `slicer_cert.pem` case in `test_cloud_platform_headers`; 33/33 green on the macOS CI run of that commit, and the same suite passes on a local Windows build.
 
 ## 0.2.32 - 2026-10-12
 
+### Added
 - New opt-in `cloud_os_type` key in `obn.conf` (`windows` / `linux` / `macos`, case insensitive; absent, empty or unrecognized keeps the host OS). It sets `X-BBL-OS-Type` and `X-BBL-Agent-OS-Type` on every cloud REST call, so a client whose signing leaf belongs to another platform presents one consistent identity. The `client_auth_secret` embedded in `src/appcert_cipher.cpp` is the Windows one on every OS, so `bambu_network_update_cert` fetches the Windows leaf everywhere; on macOS and Linux that combination answered HTTP 403 on `POST /v1/iot-service/api/user/ttcode` (camera mint, verified through a loopback proxy: `macos` 403, `windows` 200) and on `POST /v1/user-service/my/task` whenever `mytask_pop` attached the proof-of-possession pair. `os_type()` and the LAN path are untouched, so Windows hosts and everything else keep their old behavior. From persano/open-bamboo-networking PR #5 (prateek), merged `a7ba1a3`; OrcaSlicer fork submodule bumped in `262a88953`.
+
+### Changed
 - Libraries rebuilt from open-bamboo-networking `a7ba1a3` on all three platforms, still at `02.08.04.99` / `02.08.01.99`. The new `test_cloud_platform_headers` case (seven platform, normalization and fallback rows, asserted through `bbl_headers`) sits in the `if(OBN_BUILD_TESTS AND NOT WIN32)` block, so it is CI only; verified locally on Windows by temporarily opening that block, all rows pass, and reverting the temporary change leaves the tree untouched.
 
 ## 0.2.31 - 2026-10-10
 
+### Changed
 - Merged open-bamboo-networking master (`d8d8561`, `b974e97`, `293ce94`) into the fork: LAN print reconnect hang fix (upstream #120), cancel honored during the post-upload MQTT reconnect in `local_print`, and the new `auth_probe` action for the plugin runner. Full suite green on the merge commit (35/35 on Linux).
 - Libraries rebuilt from open-bamboo-networking `a73efa8` (the merge commit) on all three platforms, still at `02.08.04.99` / `02.08.01.99`.
 
 ## 0.2.30 - 2026-10-09
 
-- Adaptive install for future plug-in series. Official OrcaSlicer drops old rows from `AVAILABLE_NETWORK_VERSIONS`, so the next PR that adds a series (the `02.08.04` one in #16202 was the first) would again leave every shipped file undetectable. When `OrcaSlicer.conf` asks for a series this release does not ship, the installer now also writes `bambu_networking_<host_series>.*` from the `02.08.04` build and a one-line `reported_version` file next to `obn.conf`; the library's `bambu_network_get_version()` reads that file and answers with the host's series, so the slicer binds the file. The override is removed again when the configured series is one of the shipped ones, on uninstall and on restore stock, and the status page shows it. If a future official build changes the plug-in ABI instead of only the version row (struct field order, removed export), the same-day rebuild still comes from the upstream watch workflow below.
+### Added
 - New `watch_upstream.yml` workflow in open-bamboo-networking: daily fetch of official OrcaSlicer's `src/slic3r/Utils/bambu_networking.hpp`, commit of the new snapshot under `.github/`, an issue with the diff on change, and a `build.yml` dispatch for the new latest series when its ABI snapshot directory exists (`build.yml` is dispatch-only, so nothing loops).
+
+### Changed
+- Adaptive install for future plug-in series. Official OrcaSlicer drops old rows from `AVAILABLE_NETWORK_VERSIONS`, so the next PR that adds a series (the `02.08.04` one in #16202 was the first) would again leave every shipped file undetectable. When `OrcaSlicer.conf` asks for a series this release does not ship, the installer now also writes `bambu_networking_<host_series>.*` from the `02.08.04` build and a one-line `reported_version` file next to `obn.conf`; the library's `bambu_network_get_version()` reads that file and answers with the host's series, so the slicer binds the file. The override is removed again when the configured series is one of the shipped ones, on uninstall and on restore stock, and the status page shows it. If a future official build changes the plug-in ABI instead of only the version row (struct field order, removed export), the same-day rebuild still comes from the upstream watch workflow below.
 - Libraries rebuilt from open-bamboo-networking `3aff180` (the `reported_version` override read) on all three platforms, still at `02.08.04.99` / `02.08.01.99`. New config-suite case covers valid/invalid override content plus the active-dir lookup; Windows runs the 13 core tests, Linux CI the extended suite, all green.
 
 ## 0.2.29 - 2026-10-09
 
-- Official OrcaSlicer took PR #16202 (merged 2026-10-07, present in builds from `ee2c40ea`): `AVAILABLE_NETWORK_VERSIONS` now lists `02.08.04` as latest and dropped `02.08.01`, and the loader resolves `bambu_networking_02.08.04.*` with no unversioned fallback. On those builds 0.2.28 and older report "Bambu Network plug-in not detected" forever. One install now places both series: the `02.08.04.99` build as the unversioned `bambu_networking.*` and as `bambu_networking_02.08.04.*`, and the `02.08.01.99` build as `bambu_networking_02.08.01.*`, so post-#16202 hosts bind the new file and hosts whose whitelist predates #16202 keep binding `02.08.01` unchanged. Conflict cleanup keeps both series and still removes other `02.08.*` leftovers; the status page counts either build as Open Bamboo. Our OrcaSlicer fork synced the same change (`queue_plate_id`, `02.08.04` row, `02.08.01` dropped, the fork's `02.07.01` row and `.99` load-gate bypass kept) in `persano/OrcaSlicer` commit `1d852f9c9`.
+### Changed
 - `mytask_pop` now defaults to `auto`: the proof-of-possession pair attaches on the CN cloud with no config edit, keeping the historical bearer-only request elsewhere. This is what the reporter's A/B on the Chinese-cloud H2D showed (`mytask_pop = 1` printed, off reproduced the exact 403), so the promised default ships. Explicit `1` still forces the pair on for any region, explicit `0` forces it off including CN; `is_cn_region()` moved to the public config API to drive the switch. Note: an `obn.conf` created from the 0.2.27/0.2.28 template contains a literal `mytask_pop = 0`, which keeps its old explicit-off meaning - delete the line or set `mytask_pop = auto` to get the region default.
 - Merged open-bamboo-networking `73d923b..1f9e192`: upstream's configurable `filter_mqtt_hms_65543` (PR #99, default off there, default on in this fork as before) and PR #115 research corpus, plus `97b6192` (the `mytask_pop` auto switch). New `filter_mqtt_hms_65543` key in `obn.conf`.
 - Libraries rebuilt from open-bamboo-networking `97b6192`: Windows/Linux/macOS each ship the `02.08.04.99` and `02.08.01.99` builds. The installer harness covers the dual-series placement (both files from their own builds, wrong-series leftover removed, backup/restore/uninstall), and config/cloud-print suites cover `auto`/`0`/`1` parsing and the CN/global switch (extended suite runs in Linux CI; Windows runs the 13 core tests, all green).
 
+### Fixed
+- Official OrcaSlicer took PR #16202 (merged 2026-10-07, present in builds from `ee2c40ea`): `AVAILABLE_NETWORK_VERSIONS` now lists `02.08.04` as latest and dropped `02.08.01`, and the loader resolves `bambu_networking_02.08.04.*` with no unversioned fallback. On those builds 0.2.28 and older report "Bambu Network plug-in not detected" forever. One install now places both series: the `02.08.04.99` build as the unversioned `bambu_networking.*` and as `bambu_networking_02.08.04.*`, and the `02.08.01.99` build as `bambu_networking_02.08.01.*`, so post-#16202 hosts bind the new file and hosts whose whitelist predates #16202 keep binding `02.08.01` unchanged. Conflict cleanup keeps both series and still removes other `02.08.*` leftovers; the status page counts either build as Open Bamboo. Our OrcaSlicer fork synced the same change (`queue_plate_id`, `02.08.04` row, `02.08.01` dropped, the fork's `02.07.01` row and `.99` load-gate bypass kept) in `persano/OrcaSlicer` commit `1d852f9c9`.
+
 ## 0.2.28 - 2026-10-08
 
+### Changed
 - Merged ClusterM/open-bamboo-networking master into the fork: upstream accepted our revert of `8080cb9` as PR #113 and merged it verbatim - all six reverted files are byte-identical to the PR head - so the signed client-side `liveview.prepare` we have shipped since 0.2.21 is now the upstream state as well.
 - Takes upstream `2cfd2ba` (app_cert_list): the query now sends `"type":"app"` and checks the report's `result` - without `type` the firmware replies `result=FAIL` and no `cert_ids`, so the harvest was empty, and non-SUCCESS replies now warn in `obn.log` instead of being parsed silently.
 - Takes upstream TUTK research updates (`93d7d46`, `7243b88`) and the `plugin_runner --client-version` flag, combined with our `BambuStudio` `client_name` default. Drops `7243b88`'s `TutkSession.cpp` re-indent: whitespace-only (`diff -w` empty), it only mangled indentation.
@@ -127,124 +173,191 @@ All notable changes to Open Bamboo Networking are documented in this file.
 
 ## 0.2.27 - 2026-10-08
 
+### Added
 - New opt-in `mytask_pop` key in `obn.conf` (default `0`): when set to `1`, `POST /v1/user-service/my/task` (cloud print / print history record) additionally carries the proof-of-possession header pair `x-bbl-app-certification-id` / `x-bbl-device-security-sign`. This targets a Chinese-cloud (`api.bambulab.cn`) H2D where, with `client_name = BambuStudio` and every other API answering 200, exactly this call answered 403 while stock Bambu Studio printed fine on the same account and printer, and research `10.05` lists `/my/task` as proof-of-possession-required on verified printers. The default keeps the historical bearer-only request that `api.bambulab.com` accepts, so nothing changes for existing installs; the flag is key-match guarded and, with no slicer key/cert present, sends no headers at all rather than a blank pair. If the flag is on but the pair cannot be attached, `obn.log` warns instead of failing silently.
-- Libraries rebuilt from open-bamboo-networking `ce029b2`, still at ABI `02.08.01.99`.
 - Covered by unit tests (flag off by default, flag on with no signing material attaches nothing, flag on with a matching key/cert attaches the HTTP `issuer:serial` form of the pair); the CN-cloud hardware case is still unverified and is what this build is released for.
+
+### Changed
+- Libraries rebuilt from open-bamboo-networking `ce029b2`, still at ABI `02.08.01.99`.
 
 ## 0.2.26 - 2026-10-07
 
-- Cloud print and "local print with record" failed with HTTP 403 `The client does not have access rights to the content.` on every install that had not overridden `client_name`: the shipped default `OpenBambooNetworking` is rejected by `POST /v1/user-service/my/task`, which only accepts the stock client name `BambuStudio`, and the `/user/ttcode` camera mint has the same requirement. The default in `obn.conf` and the empty-config fallback are now `BambuStudio`, and `create_task` logs a warning naming the offending value instead of only failing against the server. Reported from a Chinese-cloud H2D where every other API answered 200. Existing configs keep their explicit line and need the one-line edit to `client_name = BambuStudio`.
+### Changed
 - `plugin_runner` now defaults to the same client name as the runtime so captures and probes reproduce plugin behavior.
 - Libraries rebuilt from open-bamboo-networking `8e3dfb2`, still at ABI `02.08.01.99`.
+
+### Fixed
+- Cloud print and "local print with record" failed with HTTP 403 `The client does not have access rights to the content.` on every install that had not overridden `client_name`: the shipped default `OpenBambooNetworking` is rejected by `POST /v1/user-service/my/task`, which only accepts the stock client name `BambuStudio`, and the `/user/ttcode` camera mint has the same requirement. The default in `obn.conf` and the empty-config fallback are now `BambuStudio`, and `create_task` logs a warning naming the offending value instead of only failing against the server. Reported from a Chinese-cloud H2D where every other API answered 200. Existing configs keep their explicit line and need the one-line edit to `client_name = BambuStudio`.
 - Verified on hardware (P1S): `create_task` answers a real `task_id` instead of 403, the printer accepts the signed `project_file` dispatch (`print_type: cloud`) and the job reaches PREPARE.
+
 ## 0.2.25 - 2026-10-06
 
-- Fixed remote camera live view on H2-series printers: the `/user/ttcode` mint now sends the proof-of-possession header pair `x-bbl-app-certification-id` / `x-bbl-device-security-sign` together with a populated `X-BBL-Executable-info` attestation, which the cloud requires on those models (without them it answers 403 `{"code":8}` and the camera stays on "loading"). The proof-of-possession pair is only attached when `slicer_key.pem` actually belongs to `slicer_cert.pem`, and the match is re-checked on every mint, so a certificate fetch that finishes after startup can no longer disable it for the whole session.
+### Added
 - New `executable_info` key in `obn.conf`: overrides the built-in BambuStudio attestation without a rebuild, for when Bambu rotates it and the built-in copy stops being accepted.
+
+### Changed
 - All three libraries (Windows, Linux, macOS) rebuilt from open-bamboo-networking `6f85987` (the H2 fix itself is `d159fb9`), still at ABI `02.08.01.99`. The automatic app-certificate provisioning that 0.2.24 shipped Windows-only is now in the Linux and macOS libraries as well.
+
+### Fixed
+- Fixed remote camera live view on H2-series printers: the `/user/ttcode` mint now sends the proof-of-possession header pair `x-bbl-app-certification-id` / `x-bbl-device-security-sign` together with a populated `X-BBL-Executable-info` attestation, which the cloud requires on those models (without them it answers 403 `{"code":8}` and the camera stays on "loading"). The proof-of-possession pair is only attached when `slicer_key.pem` actually belongs to `slicer_cert.pem`, and the match is re-checked on every mint, so a certificate fetch that finishes after startup can no longer disable it for the whole session.
 - Verified on hardware (P1S, fw `01.10.00.00`): ttcode mint answers 200 with the proof-of-possession pair, the printer accepts the signed `ttcode_enc` prepare, the camera plays, and no `84033543` appears.
 
 ## 0.2.24 - 2026-10-03
 
-- Signed commands now work from a clean config. The bundled Windows networking library implements `bambu_network_update_cert`: when the plugin detects a secured printer (or first needs to sign a command) it fetches the shared app certificate, CRL and signing key from Bambu's certificate endpoint - the same endpoint Bambu's own plugin uses - cross-checks the fetched key against the certificate, and writes `slicer_cert.pem` / `slicer_crl.pem` / `slicer_key.pem` into the plugin's config directory. This is the fix for the `84033543` rejections reported in #2: the signing material is present out of the box and is refreshed automatically whenever Bambu rotates the certificate. Hand-placed copies still override the automatic ones and are never overwritten.
+### Changed
 - Windows library rebuilt from open-bamboo-networking `ebfd02c`, still at ABI `02.08.01.99`; the Linux and macOS libraries get this in their next rebuild. Credential cipher/fetch unit tests and a Windows end-to-end probe (fresh config directory to HTTP 200, certificate chain matching working Studio-extracted credentials) pass.
 - The README FAQ now documents the automatic app-certificate provisioning (the OrcaCloud page description is maintained separately on the plugin page).
 
+### Fixed
+- Signed commands now work from a clean config. The bundled Windows networking library implements `bambu_network_update_cert`: when the plugin detects a secured printer (or first needs to sign a command) it fetches the shared app certificate, CRL and signing key from Bambu's certificate endpoint - the same endpoint Bambu's own plugin uses - cross-checks the fetched key against the certificate, and writes `slicer_cert.pem` / `slicer_crl.pem` / `slicer_key.pem` into the plugin's config directory. This is the fix for the `84033543` rejections reported in #2: the signing material is present out of the box and is refreshed automatically whenever Bambu rotates the certificate. Hand-placed copies still override the automatic ones and are never overwritten.
+
 ## 0.2.23 - 2026-10-02
 
+### Fixed
 - Fixed the `Could not update obn.conf (Plugin attempted an audited operation without permission)` warning appended to every install on OrcaSlicer builds with the plugin audit hook. The audit's categorical `conf` denied-path keyword refuses every Python `open()` of a path containing "conf" before any allow-list or permission prompt is consulted, so the `block_cloud = 0` ensure added in 0.2.22 could never succeed there - it even warned when the configuration was already correct, because the read failed too. The installer now applies the same fix through the bundled networking library via the new `obn_ensure_conf_block_cloud` export (C++ writes are outside the Python audit hook, and the library owns the file), with identical outcomes and install-message wording; the direct Python write remains as a fallback for libraries predating the export. The Windows library in this build carries the export; the Linux and macOS libraries get it in their next rebuild.
 - Camera over LAN no longer waits on SSDP: a fresh process restores the printer's LAN address from the obn.env-backed registry (seeding the certificate pin and LAN session autostart with it) and only appends `lv=rtsps` to the stream URL after the printer answers a port-322 probe, so printers without an RTSP port fall back to plain MJPEG instead of a dead URL.
 - Re-requests a full telemetry push on every printer selection. Studio zeroes its push counters on selection changes and keeps the AMS panel and camera play button disabled until the next full (`msg: 0`) push arrives; the old once-per-connection kickstart latch left that gate closed for up to ~14 seconds after a mid-session re-selection.
 
 ## 0.2.22 - 2026-10-01
 
-- Fixed "Failed to connect to printer" reported in #1 and #2: the `obn.conf` template embedded in the native library ships `block_cloud = 1`, and a hand-written `obn.conf` containing only the FAQ's logging lines has no `block_cloud` key at all (the native default is also "block"). Either way cloud MQTT and the cloud message fallback stay disabled - `bambu_network_connect_server: blocked by block_cloud` / `send_message: cloud fallback blocked` in `obn.log` - so any printer the plugin cannot reach over LAN can never connect. The installer now creates `obn.conf` with `block_cloud = 0` when the file is missing, adds the key when it is absent, and flips an explicit `block_cloud = 1` back to `0`, preserving every other user setting (logging, TLS, PEM paths); the install message reports what changed.
+### Changed
 - Troubleshooting docs (README FAQ and OrcaCloud description) now lead with the `block_cloud = 0` check, document the `blocked by block_cloud` log signature, and add inbound UDP 2021 / same-subnet guidance for LAN discovery.
+
+### Fixed
+- Fixed "Failed to connect to printer" reported in #1 and #2: the `obn.conf` template embedded in the native library ships `block_cloud = 1`, and a hand-written `obn.conf` containing only the FAQ's logging lines has no `block_cloud` key at all (the native default is also "block"). Either way cloud MQTT and the cloud message fallback stay disabled - `bambu_network_connect_server: blocked by block_cloud` / `send_message: cloud fallback blocked` in `obn.log` - so any printer the plugin cannot reach over LAN can never connect. The installer now creates `obn.conf` with `block_cloud = 0` when the file is missing, adds the key when it is absent, and flips an explicit `block_cloud = 1` back to `0`, preserving every other user setting (logging, TLS, PEM paths); the install message reports what changed.
 
 ## 0.2.21 - 2026-09-29
 
-- Restored client-side signed `liveview.prepare` (revert of upstream `8080cb9`, reported as ClusterM/open-bamboo-networking#112). The cloud-pushed `prepare` that replaced it is rejected with `err_code: 84033543` on secured firmware - reproduced 10/10 on a P1S at `01.10.00.00` with Option B credentials loaded - so `ipcam.tutk_server` never reaches `enable`, `wait_tutk_ready` times out, and the remote liveview dies in TUTK rendezvous. The plugin now publishes a signed `prepare` immediately after the ttcode mint, re-publishes a signed copy when the cloud's dispatch comes back rejected (`rescue_cloud_liveview`), and signs `liveview`/`prepare` frames again (`would_sign` / `signable_root_key`).
+### Changed
 - Native libraries rebuilt on all three platforms from open-bamboo-networking `682f13d`, still at ABI `02.08.01.99`.
+
+### Fixed
+- Restored client-side signed `liveview.prepare` (revert of upstream `8080cb9`, reported as ClusterM/open-bamboo-networking#112). The cloud-pushed `prepare` that replaced it is rejected with `err_code: 84033543` on secured firmware - reproduced 10/10 on a P1S at `01.10.00.00` with Option B credentials loaded - so `ipcam.tutk_server` never reaches `enable`, `wait_tutk_ready` times out, and the remote liveview dies in TUTK rendezvous. The plugin now publishes a signed `prepare` immediately after the ttcode mint, re-publishes a signed copy when the cloud's dispatch comes back rejected (`rescue_cloud_liveview`), and signs `liveview`/`prepare` frames again (`would_sign` / `signable_root_key`).
+
 ## 0.2.20 - 2026-09-28
 
-- Fixed remote camera liveview minting. `/v1/iot-service/api/user/ttcode` has been answering HTTP 403 `{"code":8}` since the native library refresh in 0.2.19, because the request carried the PoP header pair. Bisected against production one header group at a time: X-BBL headers only `200`, X-BBL plus `x-bbl-app-certification-id`/`x-bbl-device-security-sign` `403`, PoP alone `403`, neither `200`. The pair is no longer sent, restoring the mint every pre-0.2.19 build performed successfully (72 consecutive `200`s on this machine).
+### Changed
 - Native libraries rebuilt on all three platforms from open-bamboo-networking `7c64b28`, still at ABI `02.08.01.99`.
+
+### Fixed
+- Fixed remote camera liveview minting. `/v1/iot-service/api/user/ttcode` has been answering HTTP 403 `{"code":8}` since the native library refresh in 0.2.19, because the request carried the PoP header pair. Bisected against production one header group at a time: X-BBL headers only `200`, X-BBL plus `x-bbl-app-certification-id`/`x-bbl-device-security-sign` `403`, PoP alone `403`, neither `200`. The pair is no longer sent, restoring the mint every pre-0.2.19 build performed successfully (72 consecutive `200`s on this machine).
+
 ## 0.2.19 - 2026-09-28
 
+### Changed
+- Status now shows the library's reported version and flags a wrong ABI series, so a bad build is visible before the slicer ever complains.
+
+### Fixed
 - Fixed the "Bambu Network plug-in not detected. Click here to install it." loop reported by @orca_49fddabcc2. The libraries refreshed in 0.2.18 were built for ABI `02.08.02`, a series OrcaSlicer does not whitelist, so the slicer refused to bind them, rewrote `network_plugin_version` to `02.08.02` and renamed the file to `bambu_networking_02.08.02.dll` - after which it could no longer find any library and kept re-offering its own download. All platforms now ship the `02.08.01.99` build OrcaSlicer's `SLIC3R_VERSION 02.08.01.55` expects.
 - The installer now always writes `bambu_networking_02.08.01.dll`, the series file `resolve_library_path()` binds. Stock OrcaSlicer never loads the plain `bambu_networking.dll` on a modern config, so installing only that file used to be a no-op.
 - Leftover `bambu_networking_02.08.0x.dll` files from a wrong-series build are removed on install instead of lingering and poisoning the configured version, and the success message lists what was cleaned up.
 - Install is refused with an actionable message when the bundled library reports a series OrcaSlicer refuses, rather than silently installing a library the slicer cannot detect.
-- Status now shows the library's reported version and flags a wrong ABI series, so a bad build is visible before the slicer ever complains.
 
 ## 0.2.18 - 2026-09-28
 
-- Fixed the reported install failure `Cannot overwrite locked file bambu_networking.dll: [WinError 2] The system cannot find the file specified`: the installer no longer renames a library that is not there, so a read-only folder such as `C:\Program Files\OrcaSlicer` now reports the real cause (no write permission) with an administrator hint instead of a bogus missing-file error.
-- A folder that needs administrator rights no longer aborts the whole install: every writable OrcaSlicer location is still updated and the result message lists the skipped ones.
+### Changed
 - Targets that already carry the bundled library are left in place instead of being rewritten, and stale `.old` / `.pending_delete` leftovers are swept from every plugin folder.
 - Updated native libraries for Windows (x64), Linux (x64) and macOS (Apple Silicon) to the latest network core: TUTK file transfer, storage browser fix, cloud MQTT TLS verification on Windows, and the upstream #102 / #103 input hardening round.
 
+### Fixed
+- Fixed the reported install failure `Cannot overwrite locked file bambu_networking.dll: [WinError 2] The system cannot find the file specified`: the installer no longer renames a library that is not there, so a read-only folder such as `C:\Program Files\OrcaSlicer` now reports the real cause (no write permission) with an administrator hint instead of a bogus missing-file error.
+- A folder that needs administrator rights no longer aborts the whole install: every writable OrcaSlicer location is still updated and the result message lists the skipped ones.
+
 ## 0.2.17 - 2026-09-25
 
-- Merged upstream fixes for public key caching with atomic certificate persistence.
-- Resolved cloud printer connection notification race condition when slicer registers callbacks late.
+### Added
 - Added proactive pushall kickstart on broker connect and subscription for instant AMS slot, temperatures, and job sync.
+
+### Changed
+- Merged upstream fixes for public key caching with atomic certificate persistence.
+
+### Fixed
+- Resolved cloud printer connection notification race condition when slicer registers callbacks late.
 
 ## 0.2.16 - 2026-09-25
 
+### Changed
 - Zero startup audit prompts: Slicer startup never touches external filesystem paths during UI generation.
 - On-demand permission model: Security audit hooks only trigger when user explicitly clicks Check Status, Install, Restore, or Uninstall.
-- Removed background file deletions from read-only status checks.
 - Streamlined portable directory discovery using exact executable path without scanning unrelated directories.
 - Avoided un-persistable file deletion audit hooks by utilizing atomic rename operations for locked libraries.
 
+### Removed
+- Removed background file deletions from read-only status checks.
+
 ## 0.2.15 - 2026-09-25
 
+### Added
 - Added multi-directory detection and synchronization to support portable and standalone OrcaSlicer installations.
+
+### Changed
 - Automatically synchronizes libraries across the executable root, resources/plugins folder, and user AppData folder.
 - Synchronized stock restorations and uninstalls across all active slicer locations simultaneously.
 
 ## 0.2.14 - 2026-09-25
 
-- Embedded inline IPC bridge in webview HTML to ensure UI buttons always connect to slicer backend.
+### Added
 - Added automatic retry logic for webview message delivery on cold startup.
+
+### Changed
+- Embedded inline IPC bridge in webview HTML to ensure UI buttons always connect to slicer backend.
+
+### Fixed
 - Fixed button clicks falling back to static status view when host bridge is initializing.
 
 ## 0.2.13 - 2026-09-25
 
-- Fixed WinError 32 (file in use by another process) when installing, restoring stock, or uninstalling while OrcaSlicer is running.
+### Added
 - Added atomic rename-aside mechanism so locked native libraries can be replaced or removed without closing OrcaSlicer first.
 - Added cleanup for temporary pending files on startup.
 
+### Fixed
+- Fixed WinError 32 (file in use by another process) when installing, restoring stock, or uninstalling while OrcaSlicer is running.
+
 ## 0.2.12 - 2026-09-25
 
-- Renamed all UI text, status badges, and action buttons to "Open Bamboo" instead of "Clean Room".
+### Added
 - Added SHA256 cryptographic verification for 100% accurate identification of Open Bamboo vs stock binaries.
+
+### Changed
+- Renamed all UI text, status badges, and action buttons to "Open Bamboo" instead of "Clean Room".
 - Synchronized versioned native libraries (such as `bambu_networking_02.08.01.dll`) on install, restore stock, and uninstall so OrcaSlicer never loads mismatched binaries.
 
 ## 0.2.11 - 2026-09-25
 
-- Fixed library status detection so stock vendor binaries are not falsely identified as open source libraries.
+### Added
 - Added separate "Restore Stock Backup" action alongside "Uninstall / Remove Library".
+
+### Fixed
+- Fixed library status detection so stock vendor binaries are not falsely identified as open source libraries.
 - Fixed uninstall logic so active library is removed cleanly rather than restoring backup.
 
 ## 0.2.10 - 2026-09-25
 
-- Fixed an empty wheel RECORD file that prevented OrcaSlicer from installing and activating the plugin.
+### Added
 - Added top_level.txt to wheel dist-info for clean package import resolution.
+
+### Fixed
+- Fixed an empty wheel RECORD file that prevented OrcaSlicer from installing and activating the plugin.
 
 ## 0.2.9 - 2026-09-25
 
+### Added
 - Added pre-compiled macOS Apple Silicon (arm64) open source library (libbambu_networking.dylib).
 - Added dedicated "Open Bamboo" tab in OrcaSlicer top bar with interactive dashboard and 1 click installer.
-- Removed socket calls on startup to ensure zero security audit warnings on application launch.
 - Added automated publishing to OrcaCloud Plugin Hub via GitHub Actions OIDC.
+
+### Removed
+- Removed socket calls on startup to ensure zero security audit warnings on application launch.
 
 ## 0.2.8 - 2026-09-25
 
+### Added
+- Added instant stream teardown burst on camera stop, cutting reconnect delay to under 2 seconds.
+- Added proactive pushall telemetry request on cloud connect to sync AMS slot assignments immediately.
+
+### Changed
 - Initial release bundling open source networking libraries for Windows (x64) and Linux (x64).
 - Enabled cloud printing without developer mode using automatic slicer key signing.
 - Enabled remote camera liveview over the internet via ThroughTek (TUTK) P2P streaming.
-- Added instant stream teardown burst on camera stop, cutting reconnect delay to under 2 seconds.
-- Added proactive pushall telemetry request on cloud connect to sync AMS slot assignments immediately.
 - Filtered transient error codes caused by initial unsigned cloud requests.
