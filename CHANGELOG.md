@@ -1,6 +1,19 @@
 # Changelog
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.49 - 2026-11-13
+
+### Added
+- TLS handshake smoke test `tests/tls_handshake_test.cpp` (CTest name `tls_handshake`): three in-process TLS 1.3 handshakes plus a ping/pong exchange over a BIO pair, run on every CI platform so an OpenSSL miscompile fails the build instead of crashing OrcaSlicer at cloud login.
+
+### Changed
+- Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `21e0483` merges ClusterM master `77de55a` "Refactor synthetic subtask management to use a vector for history tracking" and PR #154 "Fix cloud message dispatch after callback registration changes" (2 commits on top of the 0.2.48 pin `e7db84b`). Libraries rebuilt from `21e0483` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+- Repo-side: the installer's status-page sign-in step now names the Home icon in OrcaSlicer's left sidebar, and the OrcaCloud FAQ gained an entry for "MQTT Command verification failed" (HMS 0500-0500-0001-0007).
+
+### Fixed
+- Windows arm64 cloud-login crash (issue #10): `tls_parse_all_extensions` was miscompiled by MSVC at `/O2 /Gs0` (OpenSSL's `VC-WIN64-*` configs add `/Gs0`), so the prologue called `__chkstk` before spilling `x30` and the function returned into itself during the Bambu cloud TLS handshake (openssl/openssl#26239). The arm64 Windows builds now go through the `arm64-windows-static-md-o1` overlay triplet, which sets `VCPKG_C_FLAGS_RELEASE=/O1` (appended after vcpkg's `/O2`, and cl takes the last `/O`); `/O1` applies to the whole arm64 release build. Wired into both `build.yml` and `release.yml`.
+- Cloud message dispatch after callback registration changes (ClusterM/open-bamboo-networking#154 by jwischka): `Agent::connect_cloud()` no longer captures `on_message_` once at connect time. The callback body lives in `Agent::make_cloud_message_callback()`, which reads the current handler under `mu_` per report and invokes the copy after releasing the lock, so a handler registered, replaced or cleared after connect (OrcaSlicer's `NetworkAgent::set_printer_agent` does this when switching printer agents) is honoured, with direct delivery preserved. The merge keeps the fork's extra cloud-frame handling (project_file rescue, HMS decode logging, LAN-priority push_status suppression) inside the factory.
+
 ## 0.2.48 - 2026-11-08
 
 ### Added

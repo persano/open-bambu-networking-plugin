@@ -1,4 +1,17 @@
 
+## 0.2.49 - 2026-11-13
+
+### Added
+- A TLS handshake smoke test (three in-process TLS 1.3 handshakes with a ping/pong exchange) now runs in the library's CI on every platform, so a miscompiled OpenSSL fails the build instead of crashing OrcaSlicer at sign-in.
+
+### Changed
+- Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `21e0483` merges ClusterM master `77de55a` (synthetic subtask history refactor) and upstream PR #154, on top of the 0.2.48 pin `e7db84b`. Libraries rebuilt from `21e0483` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+- The install steps on the status page now point at the Home icon in OrcaSlicer's left sidebar for signing in (there is no separate top-bar login button), and the FAQ documents the "MQTT Command verification failed" (HMS 0500-0500-0001-0007) troubleshooting.
+
+### Fixed
+- Windows arm64: no more crash when signing in to Bambu Cloud. OrcaSlicer used to die during the cloud TLS handshake inside OpenSSL's `tls_parse_all_extensions` (issue #10); the arm64 libraries are now built with `/O1` to dodge an MSVC ARM64 code-generation defect that only appears at `/O2 /Gs0`.
+- The Device panel no longer gets stuck on "Failed to connect to the printer" with no temperatures or AMS data when OrcaSlicer starts with a non-Bambu printer selected and you select a Bambu printer later: the cloud message callback now picks up the handler registered after the connection was made (ClusterM/open-bamboo-networking#154 by jwischka).
+
 ## 0.2.48 - 2026-11-08
 
 ### Added

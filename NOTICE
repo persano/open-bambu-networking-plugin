@@ -22,11 +22,10 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ 9c5dbbb (2026-11-05, merges ClusterM
-  master 95d42f8: `Support for ABI v02.09.01`)
-  The macOS Intel binaries come from @ e7db84b, which differs from 9c5dbbb
-  only in .github/workflows/build.yml (enables the Intel job); the library
-  source is identical.
+  persano/open-bamboo-networking @ 21e0483 (2026-11-13, merges ClusterM
+  master 77de55a and upstream PR #154 `Fix cloud message dispatch after
+  callback registration changes`; also adds the Windows arm64 /O1 OpenSSL
+  build for the cloud-login crash and the TLS handshake smoke test)
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 
