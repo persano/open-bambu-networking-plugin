@@ -1687,7 +1687,7 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
     <ol class="steps">
       <li>Click <strong>Install / Update Open Bamboo Library</strong> above.</li>
       <li><strong>Restart OrcaSlicer</strong> completely so the native engine binds the library.</li>
-      <li>Sign in to your Bambu Cloud account in the top-right corner. All printers will appear in the Device tab with live camera feeds and instant cloud printing!</li>
+      <li>Sign in to your Bambu Cloud account: click the <strong>Home icon on the left sidebar</strong> of OrcaSlicer and log in there (there is no separate top-bar login button). All printers will appear in the Device tab with live camera feeds and instant cloud printing!</li>
     </ol>
   </div>
 </div>
