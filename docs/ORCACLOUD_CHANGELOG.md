@@ -1,4 +1,13 @@
 
+## 0.2.50 - 2026-11-14
+
+### Changed
+- Updated the bundled library to v2.4.0 (`d28d0d8`) on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- Log lines that decode printer error codes now explain 84033544 (the printer rejected the print at file verification) and 84033547 (the printer could not trust the signing certificate chain, so it refuses signed print commands) instead of showing "(unknown)". 84033547 is the code behind the failure where the file uploads to the cloud but the print never starts.
+- The plugin now warns during certificate setup when Bambu's response is missing intermediate certificates, which would make the printer reject every signed print command.
+
 ## 0.2.49 - 2026-11-13
 
 ### Added

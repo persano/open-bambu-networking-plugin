@@ -22,10 +22,9 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ 21e0483 (2026-11-13, merges ClusterM
-  master 77de55a and upstream PR #154 `Fix cloud message dispatch after
-  callback registration changes`; also adds the Windows arm64 /O1 OpenSSL
-  build for the cloud-login crash and the TLS handshake smoke test)
+  persano/open-bamboo-networking @ d28d0d8 (2026-11-14, tag v2.4.0: names
+  err_code 84033544 / 84033547 in the decode logs and warns when the fetched
+  app-cert chain carries fewer than three certificates)
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 

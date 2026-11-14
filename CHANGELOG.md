@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.50 - 2026-11-14
+
+### Changed
+- Synced the bundled library with the fork: persano/open-bamboo-networking `d28d0d8` (tag `v2.4.0`) on top of the 0.2.49 pin `21e0483`. Libraries rebuilt from `d28d0d8` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- The `obn.decode` log line now names `err_code` 84033544 (print command rejected at file verification: wrong md5, plaintext `url` instead of `url_enc`, or reused `sequence_id`) and `err_code` 84033547 (the printer could not build a certificate path for the installed app cert chain, so it refuses signed commands) instead of printing `(unknown)`. 84033547 is the code an A1 mini on firmware 01.09.00.00 reports when the cloud task and S3 upload succeed but the printer rejects the signed start command.
+- The app-cert fetch now warns when the certificate Bambu returns carries fewer than three PEM blocks (leaf, intermediate, `application_root`): a leaf-only install answers `result: SUCCESS` but later fails every signed command with err_code 84033547.
+
 ## 0.2.49 - 2026-11-13
 
 ### Added
