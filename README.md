@@ -83,6 +83,19 @@ The pre-compiled binaries distributed inside this plugin (`bambu_networking.dll`
 6. Restart OrcaSlicer.
 7. Log into your **Bambu Cloud** account (on OrcaSlicer 2.5+, be sure you log into **Bambu Cloud**, not only Orca Cloud).
 
+### Enabling the Bambu Cloud login (OrcaSlicer 2.5+)
+
+The homepage only shows the Bambu Cloud login section when **Enable Bambu Cloud** is ticked:
+
+1. Open **Edit -> Preferences** (on macOS: **OrcaSlicer -> Preferences**).
+2. Select **Online** in the left sidebar.
+3. Under **Cloud Providers**, tick **Enable Bambu Cloud**.
+4. Return to the homepage (or restart OrcaSlicer): the Bambu Cloud login section appears.
+
+![Enable Bambu Cloud under Preferences -> Online -> Cloud Providers](docs/enable_bambu_cloud.png)
+
+This is a different checkbox from **Enable Bambu network plug-in** at the bottom of the same page. That one installs the plug-in; **Enable Bambu Cloud** under **Cloud Providers** is what shows the login.
+
 ---
 
 ## Compatibility

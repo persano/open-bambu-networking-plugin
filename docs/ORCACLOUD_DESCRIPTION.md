@@ -39,10 +39,14 @@ This plugin is an ease-of-use installer for a modified version of the work from 
 2. In OrcaSlicer, open the new **Open Bamboo** tab in the top navigation bar.
 3. Click **Install / Update Open Bamboo Library**.
 4. Restart OrcaSlicer.
-5. Log into your **Bambu Cloud** account (on OrcaSlicer 2.5+, make sure you sign into **Bambu Cloud**, not just Orca Cloud).
+5. On OrcaSlicer 2.5+, open **Edit -> Preferences -> Online** and tick **Enable Bambu Cloud** under **Cloud Providers**. Until it is ticked, the homepage shows no Bambu Cloud login section. It is a separate checkbox from **Enable Bambu network plug-in** at the bottom of the same page.
+6. Log into your **Bambu Cloud** account on the homepage (not just Orca Cloud).
+
+![Enable Bambu Cloud under Preferences -> Online -> Cloud Providers](https://raw.githubusercontent.com/persano/open-bambu-networking-plugin/main/docs/enable_bambu_cloud.png)
 
 ## FAQ & Troubleshooting
 
+- **No Bambu Cloud login section on the homepage:** tick **Enable Bambu Cloud** in **Preferences -> Online -> Cloud Providers** (see the screenshot under "How to get started"). It is not the **Enable Bambu network plug-in** checkbox at the bottom of the same page, and on OrcaSlicer 2.5+ fresh installs the section stays hidden until this box is ticked.
 - **Do I need Bambu Studio installed?** No. This plugin is standalone: it bundles its own open source networking libraries. You do not need Bambu Studio installed, and no files need to be copied. It is not a clean-room implementation: the bundled library embeds a Bambu Lab application client secret so it can fetch the required signing certificates automatically.
 - **Do I need slicer_key.pem?** No. Cryptographic envelope signing is fully automated in memory. You do not need to extract, generate, or place any slicer_key.pem file. The printer app certificate is provisioned automatically too - since 0.2.24 the bundled library fetches and refreshes it on its own.
 - **"MQTT Command verification failed" (HMS 0500-0500-0001-0007):** the printer rejected a signed command. First update this plugin from OrcaCloud, run Install / Update once, restart OrcaSlicer, and send a test print - since 0.2.24 the bundled library fetches and refreshes the signing certificate itself, so a stale certificate is the usual cause. If the error appeared right after a printer firmware update, Bambu's own wiki says to update Bambu Studio to 01.10.02.64 or later; for this plugin, update to the latest plugin version instead (you do not need Bambu Studio). If it persists, attach `open-bambu-networking.log` from the Open Bamboo tab when reporting it.
