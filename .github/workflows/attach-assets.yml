@@ -1,0 +1,29 @@
+name: Attach release assets
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag whose dist files to (re)attach (e.g. v0.2.49)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
+
+      # dist/ is committed at the tag, so upload those exact bytes; no rebuild.
+      # --clobber makes reruns and manual dispatches idempotent.
+      - name: Upload dist assets to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: gh release upload "$TAG" dist/* --clobber
