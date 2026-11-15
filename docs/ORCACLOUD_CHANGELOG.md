@@ -1,4 +1,15 @@
 
+## 0.2.51 - 2026-11-15
+
+### Changed
+- Updated the bundled library to v2.5.0 (`4fd3031`) on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00), cherry-picking upstream ClusterM pull requests #150, #157, #147 and #152.
+
+### Fixed
+- Typing a wrong LAN access code no longer causes an endless retry loop: the plugin now reports the failure the way Studio expects, so Studio forgets the saved code and asks for it again (ClusterM#150).
+- Printing over LAN works with OpenSSL 4.1 and newer: those systems stopped accepting printer certificates that only carry a common name, which broke MQTT, live view, file transfer and FTPS unless `lan_tls_skip_verify` was set (ClusterM#157). Also fixes building against OpenSSL 4.0.
+- Editing AMS slots on printers that reject the certificate install (for example an X1C on X1Plus) no longer freezes OrcaSlicer for 8 seconds per command (ClusterM#147).
+- Remote camera live view works on printers whose firmware never reports developer-mode status (X1C on X1Plus): the plugin keeps sending the cleartext camera code that firmware can read (ClusterM#152).
+
 ## 0.2.50 - 2026-11-14
 
 ### Changed

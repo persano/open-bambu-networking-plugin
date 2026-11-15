@@ -22,9 +22,11 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ d28d0d8 (2026-11-14, tag v2.4.0: names
-  err_code 84033544 / 84033547 in the decode logs and warns when the fetched
-  app-cert chain carries fewer than three certificates)
+  persano/open-bamboo-networking @ 4fd3031 (2026-11-15, tag v2.5.0: cherry-picks
+  ClusterM upstream PRs #150 (wrong LAN access code reporting), #157 (OpenSSL
+  4.0/4.1 build and CN-only certificate verification), #147 (no 8 s stall after
+  a refused app_cert_install) and #152 (cleartext ttcode for firmware without
+  print.fun))
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 

@@ -1,6 +1,17 @@
 # Changelog
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.51 - 2026-11-15
+
+### Changed
+- Synced the bundled library with ClusterM upstream: persano/open-bamboo-networking `4fd3031` (tag `v2.5.0`) cherry-picks ClusterM PR #150, PR #157, PR #147 and PR #152 (7 commits on top of the 0.2.50 pin `d28d0d8`). Libraries rebuilt from `4fd3031` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- Wrong LAN access code reported the way Studio expects (ClusterM/open-bamboo-networking#150 by yuyichao): a failed local connection now reports MQTT CONNACK codes 4 and 5 as message "5", the only value Studio treats as a wrong access code, so it forgets the saved code and asks again instead of retrying the wrong code forever.
+- OpenSSL >= 4.1 LAN TLS (ClusterM/open-bamboo-networking#157 by leo9800): printer certificates carry only a CN and no SAN, and OpenSSL 4.1 stopped consulting the subject CN by default, so every TLS protocol (MQTT, RTSP live view, port 6000, FTPS) failed unless `lan_tls_skip_verify = 1`; verification now always checks the subject. Also fixes the build break on OpenSSL >= 4.0 where `X509_get_issuer_name()` returns `const X509_NAME*`.
+- Signed publishes no longer block 8 s after the printer refuses `app_cert_install` (ClusterM/open-bamboo-networking#147 by mhollier117): an X1C answering `"security command not support"` used to freeze OrcaSlicer for 8 s per command (16 s per AMS slot edit); the refusal is now recorded per device for 10 minutes and the publish is signed immediately.
+- Remote liveview works again on firmware that never reports `print.fun` (ClusterM/open-bamboo-networking#152 by mhollier117): a full `push_status` without `print.fun` (X1C on X1Plus, ota 99.00.00.00) now marks the printer as having no secured mode, so the cleartext `ttcode` stays in `liveview.prepare` instead of only `ttcode_enc`, which that firmware cannot read (`no ttcode` refusals); refused `liveview.prepare` replies are also logged with the printer's reason.
+
 ## 0.2.50 - 2026-11-14
 
 ### Changed
