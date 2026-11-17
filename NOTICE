@@ -22,11 +22,9 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ 4fd3031 (2026-11-15, tag v2.5.0: cherry-picks
-  ClusterM upstream PRs #150 (wrong LAN access code reporting), #157 (OpenSSL
-  4.0/4.1 build and CN-only certificate verification), #147 (no 8 s stall after
-  a refused app_cert_install) and #152 (cleartext ttcode for firmware without
-  print.fun))
+  persano/open-bamboo-networking @ f95ddbb (2026-11-17, tag v2.5.1: cover FTPS
+  fallback for printers that dropped the port-6000 file service, TUTK force for
+  file-browser callers, thumbnail_url injection for active-print covers)
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 

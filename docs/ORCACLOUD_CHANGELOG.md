@@ -1,3 +1,12 @@
+## 0.2.52 - 2026-11-17
+
+### Changed
+- Updated the bundled library to v2.5.1 (`f95ddbb`) on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- The cover thumbnail shows during an active LAN print again: the panel was stuck on the static SD-card placeholder because the plugin never sent the thumbnail URL, which it now injects into the print status.
+- Cover images download on printers that dropped the file service (P1S firmware 01.10.00.15): the plugin fetches the print's project file over FTPS and reads the plate image from it.
+- The file browser lists files on firmware with no local route: file listings take the cloud tunnel automatically while the camera keeps using the fastest available route.
 
 ## 0.2.51 - 2026-11-15
 

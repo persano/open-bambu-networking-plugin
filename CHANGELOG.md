@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.52 - 2026-11-17
+
+### Changed
+- Synced the bundled library with the fork: persano/open-bamboo-networking `f95ddbb` (tag `v2.5.1`) on top of the 0.2.51 pin `4fd3031`. Libraries rebuilt from `f95ddbb` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- The cover thumbnail now shows during an active LAN print: the device panel reads `push_status.print.thumbnail_url` while a print runs, the plugin never set it, and the panel fell back to the static SD-card placeholder. The plugin injects its local cover URL into the rewritten print frames instead.
+- Cover images download on printers that dropped the port-6000 file control service (P1S firmware `01.10.00.15` reports `file.local=none`): `cover_cache` now falls back to downloading the print's `.3mf` over FTPS and reading `Metadata/plate_N.png` out of the archive.
+- The file browser lists files on firmware with no local file route: `get_camera_url` honors the `|files` marker OrcaSlicer sends for file-browser callers and takes the TUTK tunnel there, while live view keeps honoring `prefer_lan_over_tutk`.
+
 ## 0.2.51 - 2026-11-15
 
 ### Changed
