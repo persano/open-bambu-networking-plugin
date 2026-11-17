@@ -22,9 +22,9 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ f95ddbb (2026-11-17, tag v2.5.1: cover FTPS
-  fallback for printers that dropped the port-6000 file service, TUTK force for
-  file-browser callers, thumbnail_url injection for active-print covers)
+  persano/open-bamboo-networking @ b037335 (2026-11-17, tag v2.5.2: carry the
+  cached thumbnail_url on every frame after the first identity push, so short
+  prints show the cover during the print)
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 

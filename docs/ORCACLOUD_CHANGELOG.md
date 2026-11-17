@@ -1,3 +1,11 @@
+## 0.2.53 - 2026-11-17
+
+### Changed
+- Updated the bundled library to v2.5.2 (`b037335`) on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- The cover thumbnail now shows from the first status frame of a print: the plugin carries the cover URL on every status frame instead of only on the full identity push, which arrives on the printer's 5 minute cadence and never goes out while a short print is still running.
+
 ## 0.2.52 - 2026-11-17
 
 ### Changed
