@@ -1,3 +1,11 @@
+## 0.2.54 - 2026-11-18
+
+### Changed
+- Updated the bundled library to v2.5.3 (`f6ff897`) on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- Send to print on secured printers no longer fails with `err_code 84033547`: a slicer certificate file holding only the leaf certificate used to install as SUCCESS while the printer could not build the chain to its root, so every signed print command was rejected. The plugin now refuses to install a short chain, re fetches the shared credentials instead, and never stores a short fetch response, so the printer ends up with the full three certificate chain.
+
 ## 0.2.53 - 2026-11-17
 
 ### Changed
