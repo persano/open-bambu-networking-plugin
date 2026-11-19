@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.55 - 2026-11-19
+
+### Added
+- New Print Readiness card in the Open Bamboo tab: shows the app certificate chain state (full 3 certificate chain, blocked short chain with the `err_code 84033547` explanation, or not fetched yet), the last credential fetch result read from `obn.log`, the active log level, and the plugin / OrcaSlicer versions.
+- New Export Report for GitHub button: writes `open-bamboo-report-<timestamp>.zip` to the desktop containing the `obn.log` tail (last 5 MB), `slicer_cert.pem`, `slicer_crl.pem`, `obn.conf` when the slicer audit allows reading it, and a `status.json` snapshot, ready to attach to a GitHub issue. It never includes `slicer_key.pem`, `client_auth_secret.txt` or printer keys.
+- The status badge now reports `Cert Chain Blocked` when a short app certificate chain is refused by the library gate.
+
 ## 0.2.54 - 2026-11-18
 
 ### Changed
