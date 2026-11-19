@@ -1,3 +1,9 @@
+## 0.2.55 - 2026-11-19
+
+### Added
+- The Open Bamboo tab now has a Print Readiness section: it shows whether the stored app certificate carries the full 3 certificate chain that signed prints need, the last credential fetch result, the log level, and the plugin and OrcaSlicer versions, so a failing setup says what is wrong before you write a report.
+- New Export Report for GitHub button writes a ready to attach zip to your desktop (`obn.log` tail, certificate files, config, status snapshot, no private keys) for a GitHub issue.
+
 ## 0.2.54 - 2026-11-18
 
 ### Changed

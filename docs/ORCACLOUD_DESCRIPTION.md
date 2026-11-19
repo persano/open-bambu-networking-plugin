@@ -73,7 +73,7 @@ Capturing the log:
 1. Close OrcaSlicer. Your config folder is `%APPDATA%\OrcaSlicer` on Windows or `~/.config/OrcaSlicer` on Linux and macOS; the Open Bamboo tab shows the exact `obn.log` path.
 2. Delete `obn.log` there and add `log_level = debug` to `obn.conf`.
 3. Start OrcaSlicer and send a short test print, one small plate is enough, so the failure lands in the log. Then stop.
-4. Attach the whole `obn.log` to the issue. For rejected signed commands (84033547, 84033543, "MQTT Command verification failed") also attach `slicer_cert.pem`, it is a public certificate, safe to share. Never attach `slicer_key.pem`.
+4. The easy way: click **Export Report for GitHub** in the Open Bamboo tab, it writes a ready to attach zip to your desktop with everything below. Or attach the whole `obn.log` yourself. For rejected signed commands (84033547, 84033543, "MQTT Command verification failed") include `slicer_cert.pem` too, it is a public certificate, safe to share. Never attach `slicer_key.pem`.
 5. Files too large for GitHub can go to a file host, paste the link in the issue.
 
 ## Disclaimer

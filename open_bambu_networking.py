@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.53"
+# version = "0.2.55"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -27,6 +27,9 @@ import json
 import shutil
 import hashlib
 import re
+import time
+import zipfile
+import tempfile
 import orca
 
 # OrcaSlicer binds the network library by its AA.BB.CC series and only accepts the series its
@@ -516,6 +519,103 @@ def get_active_target_path():
 
     return get_default_target_path()
 
+def _config_dir():
+    return os.path.dirname(get_primary_plugin_dir())
+
+def cert_chain_status():
+    """App certificate chain state shown on the status page.
+
+    Firmware path-builds the installed chain to its BBL CA root: it needs
+    leaf -> intermediate -> application_root (3 PEM blocks). A shorter chain
+    installs as SUCCESS but every signed command is then rejected with
+    err_code 84033547, so the library's gate refuses to install it.
+    """
+    path = os.path.join(_config_dir(), "slicer_cert.pem")
+    info = {
+        "cert_path": path,
+        "cert_exists": False,
+        "cert_blocks": 0,
+        "cert_chain_ok": False,
+        "crl_exists": os.path.exists(os.path.join(_config_dir(), "slicer_crl.pem")),
+        "cert_error": "",
+    }
+    try:
+        with open(path, "r", encoding="ascii", errors="replace") as f:
+            pem = f.read()
+    except FileNotFoundError:
+        return info
+    except Exception as e:
+        info["cert_error"] = str(e)
+        return info
+    info["cert_exists"] = True
+    info["cert_blocks"] = pem.count("-----BEGIN CERTIFICATE-----")
+    info["cert_chain_ok"] = info["cert_blocks"] >= 3
+    return info
+
+def last_fetch_status():
+    """Latest app-cert fetch outcome from the obn.log tail."""
+    state, text = "none", "no credential fetch recorded in obn.log"
+    try:
+        with open(get_log_file_path(), "rb") as f:
+            f.seek(0, 2)
+            size = f.tell()
+            f.seek(max(0, size - 1000000))
+            tail = f.read().decode("utf-8", errors="replace")
+    except Exception:
+        return {"fetch_state": "nolog", "fetch_text": "obn.log not readable yet"}
+    for line in reversed(tail.splitlines()):
+        if "appcert fetch: ok" in line:
+            state, text = "ok", line.strip()
+            break
+        if "appcert fetch:" in line or "update_cert: app-cert fetch failed" in line:
+            state, text = "failed", line.strip()
+            break
+        if "app-cert material missing/unusable" in line:
+            state, text = "running", "fetching shared credentials"
+            break
+    return {"fetch_state": state, "fetch_text": text[:400]}
+
+def read_log_level():
+    """log_level from obn.conf; returns a note when the plugin audit denies it."""
+    try:
+        with open(os.path.join(_config_dir(), "obn.conf"), "r",
+                  encoding="utf-8", errors="replace") as f:
+            for line in f:
+                line = line.split("#", 1)[0].strip()
+                if line.startswith("log_level"):
+                    return line.split("=", 1)[-1].strip() if "=" in line else ""
+    except Exception:
+        return "unknown (slicer denied access)"
+    return "not set (library default)"
+
+def plugin_version():
+    """Version from this file's script header, the source of truth the loader reads."""
+    try:
+        with open(__file__, "r", encoding="utf-8", errors="replace") as f:
+            for _ in range(12):
+                line = f.readline()
+                if not line:
+                    break
+                m = re.match(r'#\s*version\s*=\s*"([^"]+)"', line.strip())
+                if m:
+                    return m.group(1)
+    except Exception:
+        pass
+    return ""
+
+def orca_version():
+    """Host OrcaSlicer version when the host exposes one, else ""."""
+    for attr in ("version", "app_version", "get_version"):
+        try:
+            v = getattr(orca.host, attr, None)
+            if callable(v):
+                v = v()
+            if isinstance(v, str) and v:
+                return v
+        except Exception:
+            pass
+    return ""
+
 def get_status_dict():
     active_target = get_active_target_path()
     default_target = get_default_target_path()
@@ -602,7 +702,12 @@ def get_status_dict():
         "target_size_kb": round(target_size / 1024, 1),
         "bundled_size_kb": round(bundled_size / 1024, 1),
         "os": get_os_name(),
-        "arch": get_arch_name()
+        "arch": get_arch_name(),
+        "plugin_version": plugin_version(),
+        "orca_version": orca_version(),
+        "log_level": read_log_level(),
+        **cert_chain_status(),
+        **last_fetch_status(),
     }
 
 def _native_conf_call(fn_name, conf_path):
@@ -758,6 +863,67 @@ def ensure_obn_conf():
 def get_log_file_path():
     """Where the native library writes obn.log (same folder as obn.conf)."""
     return os.path.join(os.path.dirname(get_primary_plugin_dir()), "obn.log")
+
+def do_export_report():
+    """Zip the diagnostic files for a GitHub issue.
+
+    Ships the obn.log tail (capped at 5 MB), slicer_cert.pem,
+    slicer_crl.pem, obn.conf (when the plugin audit lets Python read a
+    path containing "conf") and a status.json snapshot. Never includes
+    slicer_key.pem, client_auth_secret.txt or the certs/ device material.
+    """
+    cfg = _config_dir()
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    dest_dir = ""
+    for candidate in (os.path.join(os.path.expanduser("~"), "Desktop"),
+                      os.path.expanduser("~"), tempfile.gettempdir()):
+        if os.path.isdir(candidate):
+            dest_dir = candidate
+            break
+    zip_path = os.path.join(dest_dir, "open-bamboo-report-%s.zip" % stamp)
+    readme = (
+        "Open Bamboo diagnostic report\n"
+        "=============================\n\n"
+        "Attach this whole zip to a GitHub issue:\n"
+        "https://github.com/persano/open-bambu-networking-plugin/issues\n\n"
+        "Contents: obn.log (tail), slicer_cert.pem, slicer_crl.pem,\n"
+        "obn.conf (if readable) and status.json. It does NOT contain\n"
+        "slicer_key.pem, client_auth_secret.txt or printer keys.\n"
+    )
+    added = []
+    try:
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+            try:
+                with open(get_log_file_path(), "rb") as f:
+                    f.seek(0, 2)
+                    size = f.tell()
+                    f.seek(max(0, size - 5000000))
+                    data = f.read()
+                z.writestr("obn.log", data)
+                added.append("obn.log")
+            except Exception:
+                pass
+            for name in ("slicer_cert.pem", "slicer_crl.pem", "obn.conf"):
+                try:
+                    with open(os.path.join(cfg, name), "rb") as f:
+                        z.writestr(name, f.read())
+                    added.append(name)
+                except Exception:
+                    pass
+            try:
+                z.writestr("status.json",
+                           json.dumps(get_status_dict(), indent=2, default=str))
+                added.append("status.json")
+            except Exception:
+                pass
+            z.writestr("README.txt", readme)
+    except Exception as e:
+        return False, "Could not write the report: %s" % e
+    if not added:
+        return False, "Nothing to export yet: no log or certificate files found."
+    return True, ("Report written to %s (includes %s). Attach it to "
+                  "https://github.com/persano/open-bambu-networking-plugin/issues"
+                  % (zip_path, ", ".join(added)))
 
 _LOG_MANUAL_NOTE = (
     " Could not enable file logging automatically (OrcaSlicer blocked the plugin's "
@@ -1286,6 +1452,14 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
                 orca.host.ui.message(msg, "Open Bamboo Networking", buttons="ok", icon="info" if success else "error")
             except Exception:
                 pass
+        elif action == "export_report":
+            success, msg = do_export_report()
+            reply["success"] = success
+            reply["message"] = msg
+            try:
+                orca.host.ui.message(msg, "Open Bamboo Networking", buttons="ok", icon="info" if success else "error")
+            except Exception:
+                pass
         elif action == "get_status":
             reply["message"] = "Status refreshed."
 
@@ -1313,6 +1487,17 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
             "bundled_size_kb": 0,
             "os": get_os_name(),
             "arch": get_arch_name(),
+            "plugin_version": "",
+            "orca_version": "",
+            "log_level": "",
+            "cert_exists": False,
+            "cert_blocks": 0,
+            "cert_chain_ok": False,
+            "cert_path": "",
+            "cert_error": "",
+            "crl_exists": False,
+            "fetch_state": "none",
+            "fetch_text": "",
             "initial": True
         }
         status_json = json.dumps(default_status)
@@ -1649,6 +1834,29 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
   </div>
 
   <div class="card">
+    <h3>🖨️ Print Readiness</h3>
+    <div class="meta-grid">
+      <div class="meta-key">App certificate:</div>
+      <div id="certState" class="meta-val">-</div>
+
+      <div class="meta-key">Credential fetch:</div>
+      <div id="fetchState" class="meta-val">-</div>
+
+      <div class="meta-key">Log level:</div>
+      <div id="logLevel" class="meta-val">-</div>
+
+      <div class="meta-key">Plugin / OrcaSlicer:</div>
+      <div id="versionsText" class="meta-val">-</div>
+    </div>
+    <div class="meta-note">Signed prints need the full 3 certificate chain (leaf, intermediate, application root) stored as <code>slicer_cert.pem</code>. A blocked chain is refused on purpose, firmware would answer <code>err_code 84033547</code> to every signed command. The plugin re fetches the chain automatically; if it stays blocked, delete <code>slicer_cert.pem</code> from the folder shown for Log File and restart OrcaSlicer.</div>
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="sendAction('export_report')">
+        <span>📦</span> <span>Export Report for GitHub</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
     <h3>✨ Verified Capabilities</h3>
     <ul class="feature-list">
       <li>
@@ -1715,6 +1923,28 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
     }}
     platformText.textContent = (s.os || "") + " " + (s.arch || "");
 
+    const certState = document.getElementById("certState");
+    const fetchState = document.getElementById("fetchState");
+    const logLevel = document.getElementById("logLevel");
+    const versionsText = document.getElementById("versionsText");
+    if (certState) {{
+      if (s.cert_error) {{
+        certState.innerHTML = "<span style='color:#ef5350; font-weight:600;'>Cannot read slicer_cert.pem: " + s.cert_error + "</span>";
+      }} else if (!s.cert_exists) {{
+        certState.innerHTML = "<span style='color:#ffa726;'>Not fetched yet</span>";
+      }} else if (s.cert_chain_ok) {{
+        certState.innerHTML = "<span style='color:#66bb6a; font-weight:600;'>Full chain (" + s.cert_blocks + " certificates), printer can verify signed commands</span>";
+      }} else {{
+        certState.innerHTML = "<span style='color:#ef5350; font-weight:600;'>BLOCKED: only " + s.cert_blocks + " certificate(s) stored, firmware rejects signed commands with err 84033547. The plugin re fetches automatically; if this persists, delete slicer_cert.pem from the Log File folder and restart OrcaSlicer.</span>";
+      }}
+    }}
+    if (fetchState) {{
+      const fc = s.fetch_state === "ok" ? "#66bb6a" : (s.fetch_state === "failed" ? "#ef5350" : "#ffa726");
+      fetchState.innerHTML = "<span style='color:" + fc + ";'>" + (s.fetch_text || "-") + "</span>";
+    }}
+    if (logLevel) logLevel.textContent = s.log_level || "-";
+    if (versionsText) versionsText.textContent = (s.plugin_version || "?") + " / " + (s.orca_version || "unknown");
+
     if (s.initial) {{
       badge.className = "badge badge-inactive";
       badge.textContent = "Standby";
@@ -1751,6 +1981,9 @@ class OpenBambuPage(orca.pages.PagesPluginCapabilityBase):
       badge.className = "badge badge-warning";
       badge.textContent = "Plug-in Disabled";
       statusText.innerHTML = "<span style='color:#ef5350; font-weight:600;'>" + s.config_warning + "</span>";
+    }} else if (s.cert_exists && !s.cert_chain_ok) {{
+      badge.className = "badge badge-warning";
+      badge.textContent = "Cert Chain Blocked";
     }}
 
     const btnRestore = document.getElementById("btnRestoreStock");
