@@ -53,6 +53,30 @@ This plugin is an ease-of-use installer for a modified version of the work from 
 - **OrcaSlicer Developer Mode toggle:** The Developer mode toggle in OrcaSlicer preferences only unhides experimental slicer settings. It has no effect on printer connectivity or firmware security.
 - **Failed to connect to printer / server:** First check `block_cloud = 0` in `obn.conf` in your OrcaSlicer configuration folder (`%APPDATA%\OrcaSlicer\obn.conf` on Windows). The default `obn.conf` template ships `block_cloud = 1`, which blocks all cloud MQTT - if the log shows `blocked by block_cloud`, the plugin has no path to the printer and the slicer reports "Failed to connect". The installer writes or updates this key automatically; if you created `obn.conf` by hand, add the line yourself and restart OrcaSlicer. Also ensure you are logged into Bambu Cloud. If your network or ISP restricts TLS on port 8883, you can test adding `lan_tls_skip_verify = 1` to `obn.conf`. For LAN discovery issues, allow inbound UDP port 2021 for OrcaSlicer in your firewall and keep the printer and PC on the same subnet.
 
+## Reporting problems
+
+Reports with full details get fixed much faster, and the hub comment box is a poor place for files. Please open an issue on GitHub instead:
+
+https://github.com/persano/open-bambu-networking-plugin/issues
+
+Include these in the report:
+
+- **Plugin version:** the version shown in the **Open Bamboo** tab, or the VERSION line of the changelog on this page.
+- **OrcaSlicer version:** **Help -> About OrcaSlicer**, the full string including the nightly build hash if you run one.
+- **Operating system:** Windows **Settings -> System -> About**, macOS **Apple menu -> About This Mac**, or the output of `uname -a` on Linux.
+- **Printer model and firmware:** the model plus the firmware string from the printer screen (**Settings -> General -> Version**) or from the device panel in OrcaSlicer.
+- **The exact error:** the full dialog text, the `err_code` or HMS code verbatim, and a screenshot if there is one.
+- **Steps to reproduce:** what you clicked and what happened, including whether the job went through Bambu Cloud, LAN, or the SD card.
+
+Getting a good log:
+
+1. Close OrcaSlicer.
+2. Find your OrcaSlicer config folder (`%APPDATA%\OrcaSlicer` on Windows, `~/.config/OrcaSlicer` on Linux and macOS). The **Open Bamboo** tab shows the exact path of `obn.log`.
+3. Delete or rename `obn.log` there so the next run starts with a clean file, and add `log_level = debug` to `obn.conf` in the same folder if it is not there yet.
+4. Start OrcaSlicer, reproduce the problem with a real short print (a single small plate is enough), and stop as soon as it fails. This step matters: the log only contains the failure if the print is sent while logging runs.
+5. Attach the whole `obn.log` from that attempt to the GitHub issue. If the failure is a rejected signed command (errors such as 84033547, 84033543, or "MQTT Command verification failed"), also attach `slicer_cert.pem` from the same folder, it is a public certificate and safe to share. Never attach `slicer_key.pem`.
+6. Files too large for GitHub can go to any file host, paste the link in the issue.
+
 ## Disclaimer
 
 This is an independent community project, not affiliated with, endorsed by, or associated with Bambu Lab Inc. The bundled networking library embeds credentials that are not yours, and this plugin automates access to Bambu Lab cloud services. You alone are responsible for ensuring your use complies with the applicable terms and law.
