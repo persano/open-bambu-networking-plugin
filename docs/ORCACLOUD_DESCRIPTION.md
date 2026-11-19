@@ -55,27 +55,26 @@ This plugin is an ease-of-use installer for a modified version of the work from 
 
 ## Reporting problems
 
-Reports with full details get fixed much faster, and the hub comment box is a poor place for files. Please open an issue on GitHub instead:
+Hub comments are a poor place for files. Please open an issue on GitHub instead:
 
 https://github.com/persano/open-bambu-networking-plugin/issues
 
-Include these in the report:
+Include:
 
-- **Plugin version:** the version shown in the **Open Bamboo** tab, or the VERSION line of the changelog on this page.
-- **OrcaSlicer version:** **Help -> About OrcaSlicer**, the full string including the nightly build hash if you run one.
-- **Operating system:** Windows **Settings -> System -> About**, macOS **Apple menu -> About This Mac**, or the output of `uname -a` on Linux.
-- **Printer model and firmware:** the model plus the firmware string from the printer screen (**Settings -> General -> Version**) or from the device panel in OrcaSlicer.
-- **The exact error:** the full dialog text, the `err_code` or HMS code verbatim, and a screenshot if there is one.
-- **Steps to reproduce:** what you clicked and what happened, including whether the job went through Bambu Cloud, LAN, or the SD card.
+- **Plugin version:** Open Bamboo tab, or the VERSION line of the changelog on this page.
+- **OrcaSlicer version:** Help -> About OrcaSlicer, full string including nightly build hash.
+- **Operating system:** Windows Settings -> System -> About, macOS Apple menu -> About This Mac, or `uname -a` on Linux.
+- **Printer and firmware:** model plus firmware string from the printer screen (Settings -> General -> Version) or the device panel.
+- **Exact error:** full dialog text, `err_code` or HMS code verbatim, screenshot if any.
+- **Steps to reproduce:** what you did, and whether the job went through Bambu Cloud, LAN, or the SD card.
 
-Getting a good log:
+Capturing the log:
 
-1. Close OrcaSlicer.
-2. Find your OrcaSlicer config folder (`%APPDATA%\OrcaSlicer` on Windows, `~/.config/OrcaSlicer` on Linux and macOS). The **Open Bamboo** tab shows the exact path of `obn.log`.
-3. Delete or rename `obn.log` there so the next run starts with a clean file, and add `log_level = debug` to `obn.conf` in the same folder if it is not there yet.
-4. Start OrcaSlicer, reproduce the problem with a real short print (a single small plate is enough), and stop as soon as it fails. This step matters: the log only contains the failure if the print is sent while logging runs.
-5. Attach the whole `obn.log` from that attempt to the GitHub issue. If the failure is a rejected signed command (errors such as 84033547, 84033543, or "MQTT Command verification failed"), also attach `slicer_cert.pem` from the same folder, it is a public certificate and safe to share. Never attach `slicer_key.pem`.
-6. Files too large for GitHub can go to any file host, paste the link in the issue.
+1. Close OrcaSlicer. Your config folder is `%APPDATA%\OrcaSlicer` on Windows or `~/.config/OrcaSlicer` on Linux and macOS; the Open Bamboo tab shows the exact `obn.log` path.
+2. Delete `obn.log` there and add `log_level = debug` to `obn.conf`.
+3. Start OrcaSlicer and send a short test print, one small plate is enough, so the failure lands in the log. Then stop.
+4. Attach the whole `obn.log` to the issue. For rejected signed commands (84033547, 84033543, "MQTT Command verification failed") also attach `slicer_cert.pem`, it is a public certificate, safe to share. Never attach `slicer_key.pem`.
+5. Files too large for GitHub can go to a file host, paste the link in the issue.
 
 ## Disclaimer
 
