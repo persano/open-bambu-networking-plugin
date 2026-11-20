@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.57 - 2026-11-20
+
+### Fixed
+- The Open Bamboo tab no longer risks killing the OrcaSlicer process on audit-strict builds (flatpak): reads of `OrcaSlicer.conf`, `slicer_cert.pem` and `obn.log` now go through the native library's `obn_read_text_file` export instead of Python `open()`, which the slicer's plugin audit hard-denies for those paths. When the bundled library predates the export, the config read falls back to the proven-safe Python path and the certificate/log fields degrade to `unknown` / no log instead of failing (issue #17).
+
 ## 0.2.56 - 2026-11-19
 
 ### Changed

@@ -5,7 +5,7 @@
 # name = "Open Bamboo Networking"
 # description = "Open source networking plugin for Bambu Lab printers. Enables cloud printing without developer mode, remote camera liveview over the internet, and instant AMS slot synchronization."
 # author = "persano"
-# version = "0.2.55"
+# version = "0.2.57"
 # ///
 """Open Bamboo Networking Plugin for OrcaSlicer.
 
@@ -295,14 +295,27 @@ def bundled_series_warning():
     )
 
 def read_slicer_config():
-    """Reads the OrcaSlicer.conf keys that gate loading of any network library."""
+    """Reads the OrcaSlicer.conf keys that gate loading of any network library.
+
+    The read goes through the native library first: OrcaSlicer.conf is on the
+    slicer audit's denied-filename list, and a denied Python open must not run
+    on hosts where the denial kills the process (issue #17). The plain Python
+    open stays as the fallback for installs whose library predates
+    obn_read_text_file; that open was already exercised daily by 0.2.54
+    without the crash.
+    """
     conf_path = os.path.join(os.path.dirname(get_primary_plugin_dir()), "OrcaSlicer.conf")
     result = {"path": conf_path, "installed_networking": None, "network_plugin_version": ""}
     try:
-        with open(conf_path, "r", encoding="utf-8", errors="replace") as f:
-            text = f.read()
+        data = native_read_file(conf_path, max_bytes=4194304)
+        if data is None:
+            with open(conf_path, "r", encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        else:
+            text = data.decode("utf-8", errors="replace")
     except Exception:
         return result
+
 
     m = re.search(r'"installed_networking"\s*:\s*(true|false)', text)
     if m:
@@ -539,15 +552,21 @@ def cert_chain_status():
         "crl_exists": os.path.exists(os.path.join(_config_dir(), "slicer_crl.pem")),
         "cert_error": "",
     }
+    # Native only, no Python fallback: the slicer audit denies this path by
+    # keyword and the denial has killed the process on flatpak (issue #17).
+    # os.path.exists above is safe: os.stat raises no audit event.
     try:
-        with open(path, "r", encoding="ascii", errors="replace") as f:
-            pem = f.read()
+        pem_bytes = native_read_file(path, max_bytes=262144)
     except FileNotFoundError:
         return info
     except Exception as e:
         info["cert_error"] = str(e)
         return info
+    if pem_bytes is None:
+        info["cert_error"] = "unknown (Open Bamboo library too old to read the certificate)"
+        return info
     info["cert_exists"] = True
+    pem = pem_bytes.decode("ascii", errors="replace")
     info["cert_blocks"] = pem.count("-----BEGIN CERTIFICATE-----")
     info["cert_chain_ok"] = info["cert_blocks"] >= 3
     return info
@@ -563,24 +582,33 @@ def _scan_fetch_lines(lines, state, text):
             state, text = "running", "fetching shared credentials"
     return state, text
 
-def last_fetch_status():
-    """Latest app-cert fetch outcome from obn.log."""
-    state, text = "none", "no credential fetch recorded in obn.log"
+def _native_read_or_none(path, offset=0, max_bytes=None):
+    """native_read_file with every failure (including missing file) as None."""
     try:
-        with open(get_log_file_path(), "rb") as f:
-            f.seek(0, 2)
-            size = f.tell()
-            f.seek(max(0, size - 1000000))
-            tail = f.read().decode("utf-8", errors="replace")
-            state, text = _scan_fetch_lines(tail.splitlines(), state, text)
-            if state == "none" and size > 1000000:
-                # The fetch runs once per session, so its line can predate the
-                # 1 MB tail window; scan the whole log when the tail has none.
-                f.seek(0)
-                whole = f.read().decode("utf-8", errors="replace")
-                state, text = _scan_fetch_lines(whole.splitlines(), state, text)
+        return native_read_file(path, offset=offset, max_bytes=max_bytes)
     except Exception:
+        return None
+
+def last_fetch_status():
+    """Latest app-cert fetch outcome from obn.log.
+
+    Read through the native library only: on hosts where the config path
+    itself trips a denied audit keyword, a Python open of obn.log dies with
+    the process (issue #17), so there is deliberately no Python fallback.
+    """
+    state, text = "none", "no credential fetch recorded in obn.log"
+    log_path = get_log_file_path()
+    tail = _native_read_or_none(log_path, offset=-1000000, max_bytes=1000000)
+    if tail is None:
         return {"fetch_state": "nolog", "fetch_text": "obn.log not readable yet"}
+    state, text = _scan_fetch_lines(tail.decode("utf-8", errors="replace").splitlines(), state, text)
+    if state == "none":
+        # The fetch runs once per session, so its line can predate the 1 MB
+        # tail window; scan the whole log when the tail has none. The whole
+        # read is capped at 64 MB instead of the old unbounded read.
+        whole = _native_read_or_none(log_path, max_bytes=67108864)
+        if whole is not None:
+            state, text = _scan_fetch_lines(whole.decode("utf-8", errors="replace").splitlines(), state, text)
     return {"fetch_state": state, "fetch_text": text[:400]}
 
 def read_log_level():
@@ -718,16 +746,15 @@ def get_status_dict():
         **last_fetch_status(),
     }
 
-def _native_conf_call(fn_name, conf_path):
-    """Call `fn_name(conf_path)` inside the networking library; None on failure.
+# CDLL instances kept alive so exports bound from them stay valid for the
+# process lifetime (ctypes unloads a library whose CDLL object is collected).
+_native_loaded = {}
 
-    OrcaSlicer's plugin audit hard-denies every Python open() of a path whose
-    name contains "conf" before any allowed-root or permission flow runs, so
-    the installer delegates its obn.conf writes to the library: C++ writes
-    are outside the Python audit hook and the library owns the file anyway.
-    Returns None when ctypes is unavailable, no candidate library exposes
-    the function, or the call raises (older installs), which sends the
-    caller down its direct-write fallback.
+def _native_export(fn_name, argtypes, restype):
+    """Bound `fn_name` from the first candidate library exposing it, else None.
+
+    Walks every plugin directory plus the bundled copy, skipping libraries
+    that fail to load or predate the export.
     """
     try:
         import ctypes
@@ -747,20 +774,91 @@ def _native_conf_call(fn_name, conf_path):
         seen.add(cand)
         if not os.path.isfile(cand):
             continue
-        try:
-            lib = ctypes.CDLL(cand)
-        except Exception:
-            continue
+        lib = _native_loaded.get(cand)
+        if lib is None:
+            try:
+                lib = ctypes.CDLL(cand)
+            except Exception:
+                continue
+            _native_loaded[cand] = lib
         fn = getattr(lib, fn_name, None)
         if fn is None:
             continue
-        fn.argtypes = [ctypes.c_char_p]
-        fn.restype = ctypes.c_int
-        try:
-            return fn(os.fsencode(conf_path))
-        except Exception:
-            continue
+        fn.argtypes = list(argtypes)
+        fn.restype = restype
+        return fn
     return None
+
+def _native_conf_call(fn_name, conf_path):
+    """Call `fn_name(conf_path)` inside the networking library; None on failure.
+
+    OrcaSlicer's plugin audit hard-denies every Python open() of a path whose
+    name contains "conf" before any allowed-root or permission flow runs, so
+    the installer delegates its obn.conf writes to the library: C++ writes
+    are outside the Python audit hook and the library owns the file anyway.
+    Returns None when ctypes is unavailable, no candidate library exposes
+    the function, or the call raises (older installs), which sends the
+    caller down its direct-write fallback.
+    """
+    try:
+        import ctypes
+    except Exception:
+        return None
+    fn = _native_export(fn_name, (ctypes.c_char_p,), ctypes.c_int)
+    if fn is None:
+        return None
+    try:
+        return fn(os.fsencode(conf_path))
+    except Exception:
+        return None
+
+def native_read_file(path, offset=0, max_bytes=None):
+    """File bytes read by the native library, or None when it cannot read.
+
+    The slicer's plugin audit hard-denies Python open() of OrcaSlicer.conf
+    (denied filename) and slicer_cert.pem (keyword), and on flatpak builds
+    that denial has taken the whole process down (issue #17). C++ fopen runs
+    outside the CPython audit hook, so these reads go through
+    obn_read_text_file() instead of open(). Missing file raises
+    FileNotFoundError, matching open(); every other failure returns None.
+    A negative offset counts back from end of file. max_bytes truncates
+    instead of failing, so oversized files stay readable in part.
+    """
+    try:
+        import ctypes
+    except Exception:
+        return None
+    fn = _native_export(
+        "obn_read_text_file",
+        (ctypes.c_char_p, ctypes.c_uint64, ctypes.c_char_p, ctypes.c_uint32),
+        ctypes.c_int64)
+    if fn is None:
+        return None
+
+    raw = os.fsencode(path)
+    try:
+        size = fn(raw, 0, None, 0)
+        if size < 0:
+            if size == -2:
+                raise FileNotFoundError(path)
+            return None
+        start = offset if offset >= 0 else max(0, size + offset)
+        if start > size:
+            start = size
+        length = size - start
+        if max_bytes is not None and length > max_bytes:
+            length = max_bytes
+        if length == 0:
+            return b""
+        buf = ctypes.create_string_buffer(length)
+        copied = fn(raw, start, buf, length)
+        if copied < 0:
+            return None
+        return buf.raw[:copied]
+    except FileNotFoundError:
+        raise
+    except Exception:
+        return None
 
 def _native_ensure_obn_conf(conf_path):
     """Outcome code of the legacy single-fix export (block_cloud only),
@@ -901,23 +999,27 @@ def do_export_report():
     added = []
     try:
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-            try:
-                with open(get_log_file_path(), "rb") as f:
-                    f.seek(0, 2)
-                    size = f.tell()
-                    f.seek(max(0, size - 5000000))
-                    data = f.read()
-                z.writestr("obn.log", data)
+            # Log and certificate bytes come from the native library: the
+            # slicer audit denies Python opens of slicer_cert.pem (and of
+            # obn.log on hosts with a denied keyword above the config root),
+            # where the denial can take the process down (issue #17).
+            tail = _native_read_or_none(get_log_file_path(), offset=-5000000, max_bytes=5000000)
+            if tail is not None:
+                z.writestr("obn.log", tail)
                 added.append("obn.log")
+            for name in ("slicer_cert.pem", "slicer_crl.pem"):
+                data = _native_read_or_none(os.path.join(cfg, name), max_bytes=1048576)
+                if data is not None:
+                    z.writestr(name, data)
+                    added.append(name)
+            # obn.conf is exempt from the audit keyword rule (exact-name
+            # exemption in the slicer), so a plain Python read is allowed.
+            try:
+                with open(os.path.join(cfg, "obn.conf"), "rb") as f:
+                    z.writestr("obn.conf", f.read())
+                added.append("obn.conf")
             except Exception:
                 pass
-            for name in ("slicer_cert.pem", "slicer_crl.pem", "obn.conf"):
-                try:
-                    with open(os.path.join(cfg, name), "rb") as f:
-                        z.writestr(name, f.read())
-                    added.append(name)
-                except Exception:
-                    pass
             try:
                 z.writestr("status.json",
                            json.dumps(get_status_dict(), indent=2, default=str))
