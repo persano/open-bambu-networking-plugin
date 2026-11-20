@@ -4,6 +4,15 @@
 - The Open Bamboo tab now has a Print Readiness section: it shows whether the stored app certificate carries the full 3 certificate chain that signed prints need, the last credential fetch result, the log level, and the plugin and OrcaSlicer versions, so a failing setup says what is wrong before you write a report.
 - New Export Report for GitHub button writes a ready to attach zip to your desktop (`obn.log` tail, certificate files, config, status snapshot, no private keys) for a GitHub issue.
 
+### Changed
+- Updated the bundled library to v2.5.4 (`e4a683d`) on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- Cloud print submit works on every region again: the `mytask_pop` proof of possession header now defaults on everywhere, so print submissions are no longer rejected.
+- The camera over cloud opens reliably now: the plugin waits for the prepare reply it just made instead of a stale ready flag, dialing honors its timeout instead of blocking for about 21 seconds, and the session open retries once after the TUTK restart window.
+- Slicer certificate refresh now uses the `/status` endpoint and keeps the stored private key, so it never replaces `slicer_key.pem`.
+- The GitHub report scan falls back to the whole `obn.log` when the tail has no fetch line, so Print Readiness stops reporting a missing fetch on long sessions.
+
 ## 0.2.54 - 2026-11-18
 
 ### Changed
