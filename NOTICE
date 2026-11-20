@@ -22,10 +22,10 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ e4a683d (2026-11-19, tag v2.5.4: cloud
-  print submit proof of possession on every region, camera prepare wait,
-  dial timeout and TUTK open retry fixes, /status certificate refresh that
-  keeps the stored key)
+  persano/open-bamboo-networking @ 713cd6f (2026-11-20, tag v2.5.5:
+  versioned queue integration API stage 1+2 behind obn_queue_call_v1 /
+  obn_queue_free_v1, obn_read_text_file native reader for audit-denied
+  paths)
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 
