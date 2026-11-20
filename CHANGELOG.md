@@ -3,6 +3,12 @@ All notable changes to Open Bamboo Networking are documented in this file.
 
 ## 0.2.57 - 2026-11-20
 
+### Added
+- The bundled native library now exposes the stage 1+2 queue integration API from issues #13 and #16: `obn_queue_call_v1` / `obn_queue_free_v1` with capability discovery, read-only multi-printer snapshots and polled events. No plugin UI uses it yet; it is the contract third-party queue plugins resolve on the already loaded library.
+
+### Changed
+- Synced the bundled library with the fork: persano/open-bamboo-networking `713cd6f` (tag `v2.5.5`) on top of the 0.2.56 pin `e4a683d`. Libraries rebuilt from `713cd6f` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
 ### Fixed
 - The Open Bamboo tab no longer risks killing the OrcaSlicer process on audit-strict builds (flatpak): reads of `OrcaSlicer.conf`, `slicer_cert.pem` and `obn.log` now go through the native library's `obn_read_text_file` export instead of Python `open()`, which the slicer's plugin audit hard-denies for those paths. When the bundled library predates the export, the config read falls back to the proven-safe Python path and the certificate/log fields degrade to `unknown` / no log instead of failing (issue #17).
 
