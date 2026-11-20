@@ -1,6 +1,19 @@
 # Changelog
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.56 - 2026-11-19
+
+### Changed
+- Synced the bundled library with the fork: persano/open-bamboo-networking `e4a683d` (tag `v2.5.4`) on top of the 0.2.55 pin `f6ff897`. Libraries rebuilt from `e4a683d` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- Cloud print submit works on every region again: the `mytask_pop` proof of possession header now defaults on everywhere, so `/my/task` no longer rejects print submissions.
+- The camera no longer receives its URL before the printer session is ready: the plugin waits for the reply of the prepare call it just made instead of a stale ready flag, so opening and replaying the live view over cloud stop failing on first try.
+- Camera dialing honors its timeout instead of the OS SYN retry window (about 21 seconds on Windows), and a refused connection is detected through the socket exception set, so an unreachable TUTK relay no longer stalls the viewer.
+- The TUTK session open retries once after the server restart window instead of failing outright.
+- Slicer certificate refresh now goes through the `/status` endpoint and keeps the stored private key, so a refresh never replaces `slicer_key.pem`.
+- The GitHub report scan falls back to the whole `obn.log` when the last 1 MB carries no credential fetch line, so Print Readiness stops reporting a missing fetch on long sessions.
+
 ## 0.2.55 - 2026-11-19
 
 ### Added
