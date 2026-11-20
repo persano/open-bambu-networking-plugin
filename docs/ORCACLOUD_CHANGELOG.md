@@ -1,3 +1,8 @@
+## 0.2.57 - 2026-11-20
+
+### Fixed
+- The Open Bamboo tab no longer risks killing the OrcaSlicer process on audit-strict builds (flatpak): config, certificate and log reads now go through the native library instead of Python `open()`, which the slicer's audit hard-denies for those paths, and the fields degrade to `unknown` when the library predates the export (issue #17).
+
 ## 0.2.56 - 2026-11-19
 
 ### Changed
