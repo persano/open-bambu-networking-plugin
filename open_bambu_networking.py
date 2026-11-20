@@ -552,8 +552,19 @@ def cert_chain_status():
     info["cert_chain_ok"] = info["cert_blocks"] >= 3
     return info
 
+def _scan_fetch_lines(lines, state, text):
+    """Last fetch-related line wins (same result as scanning the tail reversed)."""
+    for line in lines:
+        if "appcert fetch: ok" in line:
+            state, text = "ok", line.strip()
+        elif "appcert fetch:" in line or "update_cert: app-cert fetch failed" in line:
+            state, text = "failed", line.strip()
+        elif "app-cert material missing/unusable" in line:
+            state, text = "running", "fetching shared credentials"
+    return state, text
+
 def last_fetch_status():
-    """Latest app-cert fetch outcome from the obn.log tail."""
+    """Latest app-cert fetch outcome from obn.log."""
     state, text = "none", "no credential fetch recorded in obn.log"
     try:
         with open(get_log_file_path(), "rb") as f:
@@ -561,18 +572,15 @@ def last_fetch_status():
             size = f.tell()
             f.seek(max(0, size - 1000000))
             tail = f.read().decode("utf-8", errors="replace")
+            state, text = _scan_fetch_lines(tail.splitlines(), state, text)
+            if state == "none" and size > 1000000:
+                # The fetch runs once per session, so its line can predate the
+                # 1 MB tail window; scan the whole log when the tail has none.
+                f.seek(0)
+                whole = f.read().decode("utf-8", errors="replace")
+                state, text = _scan_fetch_lines(whole.splitlines(), state, text)
     except Exception:
         return {"fetch_state": "nolog", "fetch_text": "obn.log not readable yet"}
-    for line in reversed(tail.splitlines()):
-        if "appcert fetch: ok" in line:
-            state, text = "ok", line.strip()
-            break
-        if "appcert fetch:" in line or "update_cert: app-cert fetch failed" in line:
-            state, text = "failed", line.strip()
-            break
-        if "app-cert material missing/unusable" in line:
-            state, text = "running", "fetching shared credentials"
-            break
     return {"fetch_state": state, "fetch_text": text[:400]}
 
 def read_log_level():
