@@ -1,3 +1,13 @@
+## 0.2.58 - 2026-11-20
+
+### Changed
+- Synced the bundled library with the fork: persano/open-bamboo-networking `0c4b24d` (tag `v2.5.6`) on top of the 0.2.57 pin `713cd6f`. Libraries rebuilt from `0c4b24d` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- The Print Readiness card now says exactly where to leave the legacy network plug-in: Preferences > Online > Network plug-in version > 02.08.xx (Latest), then restart. The old text suggested an install, which never re-points a legacy pin, so the library stayed unloaded (hub report 2026-11-20).
+- The plug-in disabled warning and the install result note now both carry the full checkbox path: Preferences > Online > Enable Bambu network plug-in.
+- Switching printers in the Studio device list no longer makes the watchdog reconnect the previously selected printer and drop the one just picked: `connect_printer` moves the LAN selection (ClusterM PR #163, jcgit1).
+
 ## 0.2.57 - 2026-11-20
 
 ### Added

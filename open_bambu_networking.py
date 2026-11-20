@@ -378,11 +378,21 @@ def config_warning(conf):
     if conf["installed_networking"] is False:
         return (
             "OrcaSlicer has the network plug-in disabled, so no library is loaded at all and "
-            "the slicer reports it as missing. Enable it under Preferences > Enable Bambu "
-            "network plug-in, then restart."
+            "the slicer reports it as missing. Open Preferences > Online and tick "
+            "\"Enable Bambu network plug-in\", then restart OrcaSlicer."
         )
     if conf["installed_networking"] is True and conf["network_plugin_version"]:
         wanted = series_of(conf["network_plugin_version"])
+        # A legacy pin makes OrcaSlicer load Bambu's legacy agent instead of any
+        # file this build installs (we never ship 01.10.01.*), and the slicer
+        # treats legacy as a supported version, so it never re-points on its own.
+        if wanted == LEGACY_SERIES:
+            return (
+                f"OrcaSlicer is set to the legacy network plug-in "
+                f"({conf['network_plugin_version']}), so no Open Bamboo library loads. "
+                "Open Preferences > Online, set \"Network plug-in version\" to the "
+                "02.08.xx (Latest) entry, then restart OrcaSlicer."
+            )
         # A reported_version override makes the installed library report the
         # host's series, so the configured version is satisfied by design.
         if wanted not in SUPPORTED_SERIES and wanted != series_of(read_override_version()):
@@ -390,7 +400,8 @@ def config_warning(conf):
                 f"OrcaSlicer is configured for network plug-in {conf['network_plugin_version']}, "
                 f"which is none of the series this build installs "
                 f"({', '.join(SUPPORTED_SERIES)}). Install once to let the slicer "
-                "re-point the configuration."
+                "re-point the configuration, or set \"Network plug-in version\" under "
+                "Preferences > Online to the 02.08.xx (Latest) entry and restart."
             )
     return ""
 
@@ -1310,10 +1321,19 @@ def do_install():
         cleanup_note = " Removed unsupported-series leftover(s): " + ", ".join(sorted(set(conflicting_removed))) + "."
 
     conf_note = ""
-    if read_slicer_config()["installed_networking"] is False:
+    _conf = read_slicer_config()
+    if _conf["installed_networking"] is False:
         conf_note = (
             " OrcaSlicer still has the network plug-in disabled, so it will keep reporting it "
-            "missing: enable Preferences > Enable Bambu network plug-in, then restart."
+            "missing: open Preferences > Online and tick \"Enable Bambu network plug-in\", "
+            "then restart."
+        )
+    elif series_of(_conf["network_plugin_version"]) == LEGACY_SERIES:
+        conf_note = (
+            f" OrcaSlicer is set to the legacy network plug-in version "
+            f"({_conf['network_plugin_version']}), so it will not load this library: open "
+            "Preferences > Online, set \"Network plug-in version\" to the 02.08.xx (Latest) "
+            "entry, then restart."
         )
 
     fixes = ensure_conf_fixes_notes()
