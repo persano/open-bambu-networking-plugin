@@ -22,10 +22,11 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ 0c4b24d (2026-11-20, tag v2.5.6:
-  connect_printer moves the LAN watchdog selection on printer switch
-  (ClusterM PR #163), on top of the v2.5.5 versioned queue integration
-  API and obn_read_text_file native reader)
+  persano/open-bamboo-networking @ 3777112 (2026-11-21, tag v2.5.7:
+  an expired slicer CRL now triggers the shared-credential fetch instead
+  of a stale reinstall loop, on top of the v2.5.6 LAN watchdog printer
+  switch and the v2.5.5 versioned queue integration API and
+  obn_read_text_file native reader)
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 
