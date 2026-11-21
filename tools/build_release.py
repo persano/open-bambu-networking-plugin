@@ -6,6 +6,17 @@ import base64
 VERSION = "0.2.59"
 DIST_INFO = f"open_bambu_networking-{VERSION}.dist-info"
 
+# The hub tab reads this header from the script, so it must match VERSION or
+# the installed plugin reports a stale version (bit us in 0.2.58/0.2.59).
+import re
+with open("open_bambu_networking.py", "r", encoding="utf-8", errors="replace") as _f:
+    _m = re.search(r'#\s*version\s*=\s*"([^"]+)"', _f.read()[:800])
+if not _m or _m.group(1) != VERSION:
+    raise SystemExit(
+        f"open_bambu_networking.py header version {_m.group(1) if _m else 'NOT FOUND'} "
+        f"!= VERSION {VERSION}; bump both"
+    )
+
 METADATA_CONTENT = f"""Metadata-Version: 2.1
 Name: open_bambu_networking
 Version: {VERSION}
