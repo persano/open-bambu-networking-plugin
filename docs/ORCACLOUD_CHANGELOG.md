@@ -1,3 +1,11 @@
+## 0.2.59 - 2026-11-21
+
+### Changed
+- Synced the bundled library with the fork: persano/open-bamboo-networking `3777112` (tag `v2.5.7`) on top of the 0.2.58 pin `0c4b24d`. Libraries rebuilt from `3777112` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- An expired `slicer_crl.pem` no longer leaves the plugin stuck without credentials: the library now detects the expired CRL and re-fetches the shared credentials instead of reinstalling the same stale chain on every tick, so printers that check the CRL's `nextUpdate` accept the app certificate again (issue #23).
+
 ## 0.2.58 - 2026-11-20
 
 ### Changed
