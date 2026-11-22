@@ -1,3 +1,14 @@
+## 0.2.61 - 2026-11-22
+
+### Added
+- Stage 3 queue groundwork, no commands enabled yet: command contract documents (`docs/queue-api-v1-stage3/`) and durable per-account command receipt store, append-only JSON Lines with cross-process atomic reservation, torn-line recovery, 4096 key capacity and crash-safe compaction, with `receipt_store` test (PR #7, PR #8).
+
+### Changed
+- Synced bundled library fork: persano/open-bamboo-networking `0799bd8` (tag `v2.5.9`) on top 0.2.60 pin `aef3256`. Libraries rebuilt `0799bd8` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00). Includes ClusterM master sync through `9805810` (#150, #152, #154 follow-up, #157 follow-ups, #163).
+
+### Fixed
+- Windows HTTPS no longer aborts the TLS handshake when the certificate revocation lookup (CRL/OCSP) is unreachable: plugin skips only that online check (`CURLSSLOPT_NO_REVOCATION`), certificate chain and hostname verification stay on. Fixes `SSL connect error` on every cloud API call and unusable login (issues #26, #27).
+
 ## 0.2.60 - 2026-11-21
 
 ### Changed
