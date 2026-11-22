@@ -22,11 +22,11 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ 3777112 (2026-11-21, tag v2.5.7:
-  an expired slicer CRL now triggers the shared-credential fetch instead
-  of a stale reinstall loop, on top of the v2.5.6 LAN watchdog printer
-  switch and the v2.5.5 versioned queue integration API and
-  obn_read_text_file native reader)
+  persano/open-bamboo-networking @ aef3256 (2026-11-21, tag v2.5.8:
+  hybrid cloud prints register the main .3mf on S3 and PATCH the https URL
+  over the initial ftp:// one so X1C firmware starts the dispatched print,
+  on top of the v2.5.7 expired-CRL credential refetch, the v2.5.6 LAN
+  watchdog printer switch and the v2.5.5 versioned queue integration API)
 Corresponding Source for the binaries is available at no charge from the
 repositories above.
 

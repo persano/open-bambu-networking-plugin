@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.60 - 2026-11-21
+
+### Changed
+- Synced bundled library fork: persano/open-bamboo-networking `aef3256` (tag `v2.5.8`) on top of the 0.2.59 pin `3777112`. Libraries rebuilt `aef3256` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- Hybrid cloud prints now register the main .3mf on S3 and PATCH that `https://` URL over the initial `ftp://` one, matching stock: the cloud dispatches the last registered URL and X1C firmware on 1.08.02 silently ignores a bare `ftp://` dispatch, which queued the task and never started the print (issue #23).
+- The Open Bamboo tab version label no longer lags behind the installed build: the script header version is bumped with every release and the wheel build fails if it drifts from the release version (stale `0.2.57` label on 0.2.59, issue #23).
+
 ## 0.2.59 - 2026-11-21
 
 ### Changed
