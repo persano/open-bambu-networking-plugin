@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.62 - 2026-11-23
+
+### Changed
+- Synced bundled library fork: persano/open-bamboo-networking `0057124` (tag `v2.5.10`) on top of the 0.2.61 pin `0799bd8`. Libraries rebuilt `0057124` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- The certificate revocation skip shipped in 0.2.61 never actually compiled in: the guard tested `CURLSSLOPT_NO_REVOCATION`, a macro that does not exist in curl's headers (the real one is `CURLSSLOPT_NO_REVOKE`), so the preprocessor dropped it and every Windows cloud call still aborted on the unreachable CRL. The guard now uses the real macro and keeps certificate chain and hostname verification on; `CURLOPT_ERRORBUFFER` captures the schannel error detail so any remaining TLS failure is visible in `obn.log` (issues #26, #27).
+
 ## 0.2.61 - 2026-11-22
 
 ### Added
