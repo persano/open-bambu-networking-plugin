@@ -80,7 +80,10 @@ jobs:
             echo "No plugin files matched: $PLUGIN_FILES" >&2
             exit 1
           fi
+          # Transient connection resets mid-upload killed 0.2.62's first
+          # publish (curl exit 56 after ~6 min): retry the POST spaced.
           status="$(curl -sS -o response.json -w '%{http_code}' \
+            --retry 5 --retry-all-errors --retry-delay 15 --connect-timeout 30 \
             -H "Authorization: Bearer $oidc_token" \
             "${args[@]}" \
             https://api.orcaslicer.com/api/v1/plugin-publish/releases)"
