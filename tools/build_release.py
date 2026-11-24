@@ -3,7 +3,7 @@ import zipfile
 import hashlib
 import base64
 
-VERSION = "0.2.62"
+VERSION = "0.2.63"
 DIST_INFO = f"open_bambu_networking-{VERSION}.dist-info"
 
 # The hub tab reads this header from the script, so it must match VERSION or

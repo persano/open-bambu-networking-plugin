@@ -1,6 +1,19 @@
 # Changelog
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.63 - 2026-11-24
+
+### Added
+- Stage-3 command API: capability-gated `command.submit`, `command.get` and `job.get`, advertised as `command_protocol_revision = "stage3-draft-1"` with `command_kinds = ["print", "pause", "resume", "stop"]`, a `submission` block (durable at-most-once dispatch, `scope`, `receipt_retention`, `max_retained_keys` 4096 as the authoritative per-account capacity, `max_pending_per_device = 1`), per-printer `command_support`, and per-device print lanes that persist `may_have_been_sent` before any SDK call so an uncertain submit keeps its lane until frame evidence resolves it. `skip_objects` and `supply:"none"` reject `not_supported` before dispatch (PR #9).
+
+### Changed
+- Synced bundled library fork: persano/open-bamboo-networking `dee3382` (tag `v2.5.11`) on top of the 0.2.62 pin `0057124`. Libraries rebuilt `dee3382` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+- `limits.max_command_receipts_per_client` stays advertised for backward compatibility and is now documented as legacy only, with `submission.max_retained_keys` as the authoritative per-account durable capacity (PR #7 review).
+- Release and build workflows retry transient runner network failures on every `./configure` step (3 attempts, 20s apart); the OrcaCloud publish curl retries connection resets.
+
+### Fixed
+- The macOS `lan_live_test` link broke with the stage-3 dispatch wiring: the target's source list lacked `cloud_print.cpp`, `print_job.cpp` and `print_job_naming.cpp`, so the first `v2.5.11` release run failed with undefined `run_cloud_print_job` / `run_local_print_job`.
+
 ## 0.2.62 - 2026-11-23
 
 ### Changed
