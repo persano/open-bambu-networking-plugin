@@ -22,8 +22,13 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ b3f388e (2026-11-25, tag v2.5.13:
-  stage-3 supply "none" as user-confirmed no-automatic-filament-loading
+  persano/open-bamboo-networking @ 508e510 (2026-11-25, tag v2.5.14:
+  legacy-shaped amsDetailMapping on cloud prints, amsMapping2 hole
+  sentinel {255,255} instead of the external-spool {255,0}, and UTF-8 /
+  >260-char file opens via obn::os::open_path across sha256, zip read,
+  slurp, md5 and FTPS stor (ChenLei's PR #7 comparison findings), on top
+  of the v2.5.13 stage-3 supply "none" as user-confirmed
+  no-automatic-filament-loading
   mode with container-integrity and plate gcode entry validation
   (PR #10), plus the flag3 bit16 log wording correction
   (ClusterM#162), on top of the v2.5.12 UTF-8 -> ANSI path conversion
