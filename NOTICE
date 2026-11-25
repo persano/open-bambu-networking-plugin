@@ -22,8 +22,12 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ abb8a72 (2026-11-24, tag v2.5.12:
-  UTF-8 -> ANSI path conversion at the ABI boundary so non-ASCII profile
+  persano/open-bamboo-networking @ b3f388e (2026-11-25, tag v2.5.13:
+  stage-3 supply "none" as user-confirmed no-automatic-filament-loading
+  mode with container-integrity and plate gcode entry validation
+  (PR #10), plus the flag3 bit16 log wording correction
+  (ClusterM#162), on top of the v2.5.12 UTF-8 -> ANSI path conversion
+  at the ABI boundary so non-ASCII profile
   dirs stop landing in a mojibake sibling (issue #28), plus the ClusterM
   master merge with the PR #117 signing rework, the obn.env install-dir
   lookup and version-based plug-in series selection, on top of the
