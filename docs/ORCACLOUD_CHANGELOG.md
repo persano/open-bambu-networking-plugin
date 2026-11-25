@@ -1,3 +1,13 @@
+## 0.2.66 - 2026-11-25
+
+### Changed
+- Synced bundled library fork: persano/open-bamboo-networking `508e510` (tag `v2.5.14`) on top of the 0.2.65 pin `b3f388e`. Libraries rebuilt `508e510` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+
+### Fixed
+- Cloud prints now send a real `amsDetailMapping` instead of `[]`: `build_print_params` populates `ams_mapping_info` from the submit materials in the stock `get_ams_mapping_result` shape, one element per project filament, holes as `{"ams":-1,...}` without `sourceColor`, `filamentId` carrying the profile id and colors without the leading `#`.
+- `amsMapping2` no longer collapses unused project filaments onto the external-spool sentinel: holes are now `{255,255}` and `{255,0}` is emitted only for a real external selection (stock bridge rule from ChenLei's legacy reference).
+- UTF-8 and long file paths: `sha256_file_hex`, `zip::read_entry`, `slurp_file`, `md5_file_hex_upper` and the FTPS `stor` upload opened paths through the ANSI code page and failed past the 260-char limit. All five now open through `obn::os::open_path` (`std::filesystem::u8path` plus the `\\?\` prefix, `\\?\UNC\` for UNC roots), so unicode gcode/3mf paths and deep project directories dispatch correctly on Windows.
+
 ## 0.2.65 - 2026-11-25
 
 ### Added
