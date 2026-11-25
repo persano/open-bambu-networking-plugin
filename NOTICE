@@ -22,10 +22,14 @@ The AGPL-3.0 license, not the GPL-3.0 license, governs these binaries and
 any work derived from them.
 
 Source revision the shipped binaries were built from:
-  persano/open-bamboo-networking @ dee3382 (2026-11-24, tag v2.5.11:
-  stage-3 command API wiring - command.submit / command.get / job.get
-  advertised as stage3-draft-1 with the submission block, the legacy
-  max_command_receipts_per_client documentation and the macOS
+  persano/open-bamboo-networking @ abb8a72 (2026-11-24, tag v2.5.12:
+  UTF-8 -> ANSI path conversion at the ABI boundary so non-ASCII profile
+  dirs stop landing in a mojibake sibling (issue #28), plus the ClusterM
+  master merge with the PR #117 signing rework, the obn.env install-dir
+  lookup and version-based plug-in series selection, on top of the
+  v2.5.11 stage-3 command API wiring - command.submit / command.get /
+  job.get advertised as stage3-draft-1 with the submission block, the
+  legacy max_command_receipts_per_client documentation and the macOS
   lan_live_test link fix, on top of the v2.5.10 Windows certificate
   revocation skip (real macro CURLSSLOPT_NO_REVOKE) with schannel error
   logging, the v2.5.9 revocation skip, the v2.5.8 hybrid cloud print S3

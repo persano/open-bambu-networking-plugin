@@ -1,3 +1,12 @@
+## 0.2.64 - 2026-11-24
+
+### Changed
+- Synced bundled library fork: persano/open-bamboo-networking `abb8a72` (tag `v2.5.12`) on top of the 0.2.63 pin `dee3382`. Libraries rebuilt `abb8a72` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+- Merged upstream ClusterM master `9805810..16592dd` into the fork: the trailing-sibling signing rework (siblings are built inside `build_command_dump`, a payload-supplied top-level `header` is dropped instead of re-emitted, PR #117), `obn.env` looked up from the library's own install directory instead of a guessed slicer path, and the installer picking Orca's plug-in series by its version. The fork keeps the flag3 bit16 latch upstream dropped: the signed-print warning and the proactive app-cert fetch depend on it.
+
+### Fixed
+- Non-ASCII Windows profile directories (issue #28): Studio passes the data directory over the ABI as UTF-8 while the native library read it through the ANSI code page, so a profile like `C:\Users\Userå` created and read a mojibake sibling (`C:\Users\UserÃ¥`). `obn.conf` and `obn.log` landed there, the cloud connection failed with "Failed to connect to the server", edits to the real `obn.conf` had no effect and the Open Bamboo tab reported `obn.log not readable yet`. Path arguments crossing the ABI are now converted to the ANSI code page once at the library boundary (`config::native_narrow`); invalid UTF-8 passes through unchanged and POSIX is identity, so every file the library touches resolves to the real profile directory. The `create_agent` banner keeps the original UTF-8 bytes because `obn.log` is decoded as UTF-8.
+
 ## 0.2.63 - 2026-11-24
 
 ### Added
