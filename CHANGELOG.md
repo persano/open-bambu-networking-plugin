@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to Open Bamboo Networking are documented in this file.
 
+## 0.2.65 - 2026-11-25
+
+### Added
+- `supply: "none"` is now supported instead of rejected (PR #10): a user-confirmed "no automatic filament loading" mode. The library certifies container integrity only: the materials array must be empty, `bed_leveling`, `flow_calibration` and `timelapse` must be false, and the 3MF archive must parse and carry the exact `Metadata/plate_<N>.gcode` entry the printer itself extracts (CRC-32 verified). The plate's G-code content is never scanned, it stays the submitter's responsibility. Still capability-gated: printers that do not advertise the capability get `not_supported` before dispatch.
+
+### Changed
+- Synced bundled library fork: persano/open-bamboo-networking `b3f388e` (tag `v2.5.13`) on top of the 0.2.64 pin `abb8a72`. Libraries rebuilt `b3f388e` on all six platforms, four series (default 02.08.04, 02.09.01, 02.08.01, 02.03.00).
+- The `flag3` bit 16 log line no longer claims the printer "advertises new authorization-control system": both slicers decode that bit as the A/P-series multi-color external change assist, which says nothing about firmware security (ClusterM/open-bamboo-networking#162). The behavior behind it, the unsigned send warning and the proactive signing-material check, is unchanged.
+
 ## 0.2.64 - 2026-11-24
 
 ### Changed
